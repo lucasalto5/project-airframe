@@ -1,0 +1,302 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Editorial Aerospace Dark Palette */
+  --bg-app: #0E0F0F;
+  --bg-sidebar: #121313;
+  --bg-surface-1: #171818;
+  --bg-surface-2: #1E1F1F;
+  --bg-surface-3: #242525;
+  --bg-surface-hover: #2A2B2B;
+
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-muted: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --border-focus: #38bdf8;
+
+  --text-primary: #F5F5F3;
+  --text-secondary: #A3A39C;
+  --text-muted: #73736C;
+  --text-dim: #4D4D47;
+
+  /* Semantic status accents */
+  --status-normal: #10b981;
+  --status-caution: #f59e0b;
+  --status-critical: #ef4444;
+  --status-info: #38bdf8;
+
+  /* Technical Blueprint grid */
+  --cad-grid-line: rgba(255, 255, 255, 0.035);
+  --cad-blueprint-accent: #38bdf8;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Light Theme Variables */
+[data-theme='light'] {
+  --bg-app: #F6F6F4;
+  --bg-sidebar: #EFEFEA;
+  --bg-surface-1: #FFFFFF;
+  --bg-surface-2: #F2F2ED;
+  --bg-surface-3: #E8E8E2;
+  --bg-surface-hover: #DFDFD8;
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-muted: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.25);
+  --border-focus: #0284c7;
+
+  --text-primary: #121313;
+  --text-secondary: #575752;
+  --text-muted: #82827A;
+  --text-dim: #ABAB9F;
+
+  --cad-grid-line: rgba(0, 0, 0, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography Utility Classes */
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.page-description {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.section-title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.option-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.body-normal {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.technical-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.font-mono, .tabular-nums {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Industrial Precision Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-surface-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Technical Schematic Grid Background */
+.cad-grid-bg {
+  background-color: #111212;
+  background-image: 
+    linear-gradient(var(--cad-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cad-grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Button System - Generous Height (42-46px) */
+.btn-aerospace {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn-aerospace:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-muted);
+}
+
+.btn-aerospace:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-aerospace.primary {
+  background: #F5F5F3;
+  color: #0E0F0F;
+  border-color: #F5F5F3;
+  font-weight: 600;
+}
+
+.btn-aerospace.primary:hover:not(:disabled) {
+  background: #E1E1DC;
+  border-color: #E1E1DC;
+}
+
+.btn-aerospace.large {
+  height: 48px;
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.btn-aerospace.secondary {
+  background: transparent;
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.btn-aerospace.secondary:hover:not(:disabled) {
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  border-color: var(--border-muted);
+}
+
+.btn-aerospace.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.btn-aerospace.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Precision Inputs */
+input[type="text"], input[type="number"], select {
+  height: 44px;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0 14px;
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="text"]:focus, input[type="number"]:focus, select:focus {
+  border-color: var(--border-focus);
+  background: var(--bg-surface-2);
+}
+
+input[type="range"] {
+  height: 6px;
+  background: var(--bg-surface-3);
+  border-radius: 3px;
+  accent-color: #F5F5F3;
+  cursor: pointer;
+}
+
+/* Subtle Semantic Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 5px;
+}
+
+.status-pill.normal {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+}
+
+.status-pill.caution {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+}
+
+.status-pill.critical {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.status-pill.neutral {
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+}
+
+/* Modal Backdrops */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 15, 15, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Ultrawide Container Helper */
+.workspace-container {
+  width: 100%;
+  max-width: 1640px;
+  margin: 0 auto;
+  padding: 36px 44px;
+}
