@@ -188,3 +188,10 @@ export function formatDistance(km: number, locale?: SupportedLocale): string {
   const formatted = formatNumber(Math.round(km), undefined, currentLocale);
   return `${formatted} km`;
 }
+
+export function getTranslations(locale: SupportedLocale) {
+  return dictionaries[locale] || dictionaries.en;
+}
+
+export { dictionaries, en, ptBR };
+

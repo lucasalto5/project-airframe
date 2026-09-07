@@ -17,10 +17,25 @@ import type {
 import { SeededRNG } from './rng';
 import { updateSimulatedFlights } from './flightSimulator';
 import { checkForInServiceIncident, advanceIncidentInvestigations } from './incidentEngine';
-import { generatePotentialAirlineRFP } from './rfpEngine';
+import { generatePotentialAirlineRFP, evaluateRfpDecision } from './rfpEngine';
 import { updateCompetitorNPCs } from './npcEngine';
+import { TEST_SCENARIOS } from '../data/testCampaigns';
 
 export const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/**
+ * Base durations (in days) for each development phase for a clean-sheet commercial aircraft
+ */
+export const BASE_PHASE_DURATIONS_DAYS: Record<string, number> = {
+  concept: 150,               // ~5 months
+  preliminary_design: 210,    // ~7 months
+  detailed_design: 420,       // ~14 months
+  prototype_build: 270,       // ~9 months
+  ground_testing: 180,        // ~6 months
+  flight_testing: 480,        // ~16 months
+  certification: 180,         // ~6 months
+  production_ready: 240       // ~8 months
+};
 
 /**
  * Advance calendar date by 1 day
@@ -83,7 +98,7 @@ export function updateMacroEconomy(economy: MacroEconomy, rng: SeededRNG, isMont
 }
 
 /**
- * Advance R&D and flight test program progression
+ * Advance R&D, Flight Test missions, and Program state machines
  */
 export function advanceProgramsRnD(
   programs: AircraftProgram[],
@@ -98,99 +113,196 @@ export function advanceProgramsRnD(
   const avgProductivity = engDept.length > 0 ? (engDept.reduce((acc, d) => acc + d.productivity, 0) / engDept.length) : 1.0;
 
   const updatedPrograms = programs.map(prog => {
+    // 1. Advance Active Flight/Ground Test Missions
+    const remainingMissions = [];
+    for (const mission of prog.activeTestMissions) {
+      mission.daysElapsed += 1;
+
+      if (mission.daysElapsed >= mission.durationDays) {
+        // Mission Completed!
+        const scenarioDef = TEST_SCENARIOS.find(s => s.id === mission.scenarioId);
+        
+        // Credit flight hours & envelope
+        prog.testCampaignsProgress.flightHoursLogged += mission.flightHoursExpected;
+        prog.testCampaignsProgress.flightEnvelopeExpansionPercent = Math.min(
+          100,
+          prog.testCampaignsProgress.flightEnvelopeExpansionPercent + mission.envelopeGainExpected
+        );
+
+        // Update prototype stats
+        const pt = prog.prototypesBuilt.find(p => p.id === mission.prototypeId);
+        if (pt) {
+          pt.flightHours += mission.flightHoursExpected;
+          pt.cycles += 1;
+          pt.status = 'flight_testing';
+          pt.currentMissionId = undefined;
+        }
+
+        // Mark scenario completed
+        if (!prog.completedScenarioIds.includes(mission.scenarioId)) {
+          prog.completedScenarioIds.push(mission.scenarioId);
+        }
+
+        if (scenarioDef?.category === 'ground') {
+          prog.groundTestsCompleted = Math.min(prog.groundTestsTotal, prog.groundTestsCompleted + 1);
+        }
+
+        // Check for deterministic anomalies
+        if (scenarioDef && scenarioDef.potentialAnomalies.length > 0) {
+          if (rng.nextBool(scenarioDef.riskFactor / 100)) {
+            const anomalyDef = rng.pick(scenarioDef.potentialAnomalies);
+            if (!prog.certificationFindings.some(f => f.id === anomalyDef.id)) {
+              prog.certificationFindings.push({
+                id: anomalyDef.id,
+                programId: prog.id,
+                titleKey: anomalyDef.titleKey,
+                descKey: anomalyDef.descKey,
+                severity: anomalyDef.severity,
+                status: 'open',
+                costToFix: anomalyDef.options[0]?.costMUSD || 5.0,
+                daysToFix: anomalyDef.options[0]?.delayDays || 30
+              });
+              prog.testCampaignsProgress.anomaliesFound += 1;
+            }
+          }
+        }
+      } else {
+        remainingMissions.push(mission);
+      }
+    }
+    prog.activeTestMissions = remainingMissions;
+
+    // 2. State Machine: Advance Development Phase
     if (prog.currentPhase === 'entry_into_service' || prog.currentPhase === 'mature_production' || prog.currentPhase === 'production_ended') {
       return prog;
     }
 
     const pressureMultiplier = prog.schedulePressure === 'crunch' ? 1.45 : (prog.schedulePressure === 'aggressive' ? 1.2 : 1.0);
-    const dailyProgress = (0.28 * avgProductivity * pressureMultiplier * Math.min(2.0, Math.max(0.4, prog.allocatedHeadcount / 250)));
+    const baseDuration = BASE_PHASE_DURATIONS_DAYS[prog.currentPhase] || 180;
+    prog.phaseEstimatedDurationDays = baseDuration;
 
-    prog.phaseProgressPercent = Math.min(100, prog.phaseProgressPercent + dailyProgress);
+    // Daily percentage based on realistic duration
+    const dailyIncrement = (100 / baseDuration) * avgProductivity * pressureMultiplier * Math.min(2.0, Math.max(0.4, prog.allocatedHeadcount / 220));
+    prog.phaseProgressPercent = Math.min(100, prog.phaseProgressPercent + dailyIncrement);
+    prog.phaseElapsedDays += 1;
 
-    if (prog.schedulePressure === 'crunch' && rng.nextBool(0.15)) {
+    // Crunch pressure tech debt risk
+    if (prog.schedulePressure === 'crunch' && rng.nextBool(0.08)) {
       prog.accumulatedTechDebt = Math.min(100, prog.accumulatedTechDebt + 1);
     }
 
+    // 3. Phase Gate Transitions
     if (prog.phaseProgressPercent >= 100) {
-      prog.phaseProgressPercent = 0;
-
       if (prog.currentPhase === 'concept') {
         prog.currentPhase = 'preliminary_design';
+        prog.phaseProgressPercent = 0;
+        prog.phaseElapsedDays = 0;
       } else if (prog.currentPhase === 'preliminary_design') {
         prog.currentPhase = 'detailed_design';
+        prog.phaseProgressPercent = 0;
+        prog.phaseElapsedDays = 0;
       } else if (prog.currentPhase === 'detailed_design') {
         prog.currentPhase = 'prototype_build';
+        prog.phaseProgressPercent = 0;
+        prog.phaseElapsedDays = 0;
         if (prog.prototypesBuilt.length === 0) {
           prog.prototypesBuilt.push({
             id: `pt_${prog.id}_001`,
             programId: prog.id,
             serialNumber: 'PT-001',
-            name: `${prog.name} Aerodynamics Lead Prototype`,
+            name: `${prog.name} Flight Test Article 1`,
             primaryRole: 'aerodynamics_envelope',
             status: 'under_construction',
             flightHours: 0,
             cycles: 0,
-            completionPercent: 0,
+            completionPercent: 10,
             assignedLocationAirportId: 'ORD'
           });
         }
       } else if (prog.currentPhase === 'prototype_build') {
-        prog.currentPhase = 'ground_testing';
-        prog.prototypesBuilt.forEach(pt => {
-          if (pt.status === 'under_construction') pt.status = 'ground_testing';
-        });
+        // Prototype build progression
+        const leadPt = prog.prototypesBuilt[0];
+        if (leadPt) {
+          leadPt.completionPercent = Math.min(100, leadPt.completionPercent + 3.5);
+          if (leadPt.completionPercent >= 100) {
+            leadPt.status = 'ground_testing';
+            prog.currentPhase = 'ground_testing';
+            prog.phaseProgressPercent = 0;
+            prog.phaseElapsedDays = 0;
+          }
+        }
       } else if (prog.currentPhase === 'ground_testing') {
-        prog.currentPhase = 'flight_testing';
-        prog.prototypesBuilt.forEach(pt => {
-          if (pt.status === 'ground_testing') pt.status = 'flight_testing';
-        });
+        // Gate: Requires minimum 4 ground test campaigns completed
+        if (prog.groundTestsCompleted >= 4) {
+          prog.currentPhase = 'flight_testing';
+          prog.phaseProgressPercent = 0;
+          prog.phaseElapsedDays = 0;
+          prog.prototypesBuilt.forEach(pt => {
+            if (pt.status === 'ground_testing') pt.status = 'flight_testing';
+          });
+          prog.scheduleMilestones.actualFirstFlight = { ...currentDate };
 
-        news.push({
-          id: `news_maiden_${prog.id}_${currentDate.year}`,
-          publishedDate: { ...currentDate },
-          category: 'engineering',
-          headline: `Maiden Flight Achieved: ${prog.name} Takes to the Skies`,
-          source: 'Aviation Week & Space Intelligence',
-          summary: `The flagship prototype of the ${prog.name} commercial airliner completed its historic first flight today, launching its formal flight test certification campaign.`,
-          impactSubjectId: prog.id,
-          impactType: 'reputation'
-        });
+          news.push({
+            id: `news_maiden_${prog.id}_${currentDate.year}`,
+            publishedDate: { ...currentDate },
+            category: 'engineering',
+            headline: `Maiden Flight Achieved: ${prog.name} Takes to the Skies`,
+            source: 'Aviation Week & Space Intelligence',
+            summary: `The flagship prototype of the ${prog.name} completed its historic maiden flight today, beginning its formal flight test certification campaign.`,
+            impactSubjectId: prog.id,
+            impactType: 'reputation',
+            templateId: 'news.templates.maidenFlight',
+            templateParams: { aircraft: prog.name }
+          });
 
-        milestones.push({
-          id: `ms_maiden_${prog.id}`,
-          achievedDate: { ...currentDate },
-          title: `Maiden Flight: ${prog.name}`,
-          description: `Successfully achieved first flight of the ${prog.name} flight test prototype aircraft.`,
-          iconName: 'PlaneTakeoff',
-          rewardReputation: 15
-        });
+          milestones.push({
+            id: `ms_maiden_${prog.id}`,
+            achievedDate: { ...currentDate },
+            title: `Maiden Flight: ${prog.name}`,
+            description: `Successfully achieved first flight of the ${prog.name} test prototype.`,
+            iconName: 'PlaneTakeoff',
+            rewardReputation: 15
+          });
+        }
       } else if (prog.currentPhase === 'flight_testing') {
-        prog.currentPhase = 'certification';
+        const hasBlockers = prog.certificationFindings.some(f => f.severity === 'airworthiness_blocker' && f.status !== 'verified_resolved');
+        const mandatoryScenariosDone = TEST_SCENARIOS.filter(s => s.category === 'flight' && s.isMandatoryForCert).every(s => prog.completedScenarioIds.includes(s.id));
+
+        if (prog.testCampaignsProgress.flightHoursLogged >= 1800 && prog.testCampaignsProgress.flightEnvelopeExpansionPercent >= 95 && !hasBlockers && mandatoryScenariosDone) {
+          prog.currentPhase = 'certification';
+          prog.phaseProgressPercent = 0;
+          prog.phaseElapsedDays = 0;
+        }
       } else if (prog.currentPhase === 'certification') {
-        prog.currentPhase = 'production_ready';
-        prog.typeCertificateIssued = true;
-        prog.productionCertificateIssued = true;
-        prog.actualEisDate = { ...currentDate };
+        const hasOpenFindings = prog.certificationFindings.some(f => f.severity === 'airworthiness_blocker' && f.status !== 'verified_resolved');
+        if (!hasOpenFindings) {
+          prog.currentPhase = 'production_ready';
+          prog.typeCertificateIssued = true;
+          prog.productionCertificateIssued = true;
+          prog.scheduleMilestones.actualCertification = { ...currentDate };
 
-        news.push({
-          id: `news_cert_${prog.id}_${currentDate.year}`,
-          publishedDate: { ...currentDate },
-          category: 'commercial',
-          headline: `Type Certification Granted for ${prog.name}`,
-          source: 'Civil Aviation Regulatory Authority',
-          summary: `The ${prog.name} has officially received full commercial Type Certification, validating compliance with all airworthiness and environmental requirements.`,
-          impactSubjectId: prog.id,
-          impactType: 'reputation'
-        });
+          news.push({
+            id: `news_cert_${prog.id}_${currentDate.year}`,
+            publishedDate: { ...currentDate },
+            category: 'commercial',
+            headline: `Type Certification Granted for ${prog.name}`,
+            source: 'Civil Aviation Regulatory Authority',
+            summary: `The ${prog.name} has officially received full commercial Type Certification, validating compliance with all airworthiness and safety standards.`,
+            impactSubjectId: prog.id,
+            impactType: 'reputation',
+            templateId: 'news.templates.certificationGranted',
+            templateParams: { aircraft: prog.name }
+          });
 
-        milestones.push({
-          id: `ms_cert_${prog.id}`,
-          achievedDate: { ...currentDate },
-          title: `Type Certification: ${prog.name}`,
-          description: `Received official Type Certificate from regulatory authorities for the ${prog.name}.`,
-          iconName: 'Award',
-          rewardReputation: 25
-        });
+          milestones.push({
+            id: `ms_cert_${prog.id}`,
+            achievedDate: { ...currentDate },
+            title: `Type Certification: ${prog.name}`,
+            description: `Received official Type Certificate from civil aviation authorities.`,
+            iconName: 'Award',
+            rewardReputation: 25
+          });
+        }
       }
     }
 
@@ -229,9 +341,19 @@ export function advanceAssemblyLines(
 
   const updatedLines = assemblyLines.map(line => {
     const prog = programs.find(p => p.id === line.programId);
-    if (!prog || !prog.typeCertificateIssued) return line;
+    if (!prog) return line;
 
-    const stationDailyAdvance = (line.currentMonthlyRateTarget * 8) / 30;
+    // Tooling Phase progression
+    if (line.status === 'tooling_in_progress') {
+      line.toolingDaysRemaining = Math.max(0, line.toolingDaysRemaining - 1);
+      if (line.toolingDaysRemaining === 0) {
+        line.status = 'ready_for_production';
+      }
+      return line;
+    }
+
+    // Line is ready or active: takt time advance (e.g. rate 3/mo = 10% station progress per day = 10 days/station)
+    const stationDailyAdvance = (line.currentMonthlyRateTarget * 100) / 30;
 
     line.activeUnitsOnLine = line.activeUnitsOnLine.filter(unit => {
       unit.stationProgressPercent += stationDailyAdvance;
@@ -240,10 +362,12 @@ export function advanceAssemblyLines(
         unit.stationProgressPercent = 0;
         unit.currentStationIndex++;
 
+        // Station 7 completed -> Delivery to Customer!
         if (unit.currentStationIndex > 7) {
           const contract = contracts.find(c => c.id === unit.contractId);
           const unitPrice = contract ? contract.unitNegotiatedPrice : prog.listPrice;
           
+          // 85% remaining contract balance paid on delivery
           deliveryRevenueMUSD += unitPrice * 0.85;
           prog.totalDeliveriesCount++;
           prog.activeInServiceCount++;
@@ -268,23 +392,34 @@ export function advanceAssemblyLines(
             if (schedItem) schedItem.deliveredCount++;
           }
 
+          // First delivery milestone and transition to Entry into Service!
           if (prog.totalDeliveriesCount === 1) {
+            prog.currentPhase = 'entry_into_service';
+            prog.actualEisDate = { ...currentDate };
+            prog.scheduleMilestones.actualEis = { ...currentDate };
+
             newsArticles.push({
               id: `news_first_del_${prog.id}`,
               publishedDate: { ...currentDate },
               category: 'commercial',
               headline: `First Commercial Delivery of ${prog.name} Handed Over`,
               source: 'FlightGlobal Aerospace Delivery Wire',
-              summary: `The very first production ${prog.name} (MSN 001) has been officially delivered to launch customer ${unit.customerAirlineId}.`,
+              summary: `The very first production ${prog.name} (${unit.serialNumber}) has been delivered to launch customer ${unit.customerAirlineId}.`,
               impactSubjectId: prog.id,
-              impactType: 'orders'
+              impactType: 'orders',
+              templateId: 'news.templates.firstDelivery',
+              templateParams: {
+                aircraft: prog.name,
+                msn: unit.serialNumber,
+                customer: unit.customerAirlineId
+              }
             });
 
             milestones.push({
               id: `ms_first_delivery_${prog.id}`,
               achievedDate: { ...currentDate },
               title: `First Delivery: ${prog.name}`,
-              description: `Handed over the first customer aircraft to airline service.`,
+              description: `Handed over the first customer airliner into operational service.`,
               iconName: 'CheckCircle2',
               rewardReputation: 20
             });
@@ -296,8 +431,11 @@ export function advanceAssemblyLines(
       return true;
     });
 
+    // Spawn new units from active firm contracts if station 0 is free
     const activeContract = contracts.find(c => c.programId === line.programId && c.status === 'active');
-    if (activeContract && line.activeUnitsOnLine.length < 8) {
+    const isStation0Free = !line.activeUnitsOnLine.some(u => u.currentStationIndex === 0);
+
+    if (activeContract && isStation0Free && line.activeUnitsOnLine.length < 8) {
       const nextMsn = `MSN-${String(prog.totalDeliveriesCount + line.activeUnitsOnLine.length + 1).padStart(3, '0')}`;
       line.activeUnitsOnLine.push({
         serialNumber: nextMsn,
@@ -307,12 +445,14 @@ export function advanceAssemblyLines(
         currentStationIndex: 0,
         stationProgressPercent: 0,
         qualityDefectsCount: 0,
+        startedDate: { ...currentDate },
         estimatedDeliveryDate: {
           ...currentDate,
           month: (currentDate.month + 3) > 12 ? (currentDate.month + 3 - 12) : currentDate.month + 3,
           year: (currentDate.month + 3) > 12 ? currentDate.year + 1 : currentDate.year
         }
       });
+      line.status = 'active_producing';
     }
 
     return line;
@@ -325,6 +465,67 @@ export function advanceAssemblyLines(
     deliveryRevenueMUSD,
     newsArticles,
     milestones
+  };
+}
+
+/**
+ * Advance autonomous airline reviews on submitted RFPs
+ */
+export function advanceRfpReviews(
+  rfps: CompanyState['rfpProposals'],
+  programs: AircraftProgram[],
+  competitors: CompetitorManufacturer[],
+  airlines: AirlineCustomer[],
+  companyReputation: number,
+  currentDate: GameDate,
+  rng: SeededRNG
+): {
+  updatedRfps: CompanyState['rfpProposals'];
+  newContracts: CompanyState['firmContracts'];
+  newsArticles: NewsArticle[];
+  downPaymentMUSD: number;
+} {
+  const newContracts: CompanyState['firmContracts'] = [];
+  const newsArticles: NewsArticle[] = [];
+  let downPaymentMUSD = 0;
+
+  const updatedRfps = rfps.map(rfp => {
+    if (rfp.status === 'under_review' || rfp.status === 'bid_submitted') {
+      rfp.reviewDaysRemaining = Math.max(0, (rfp.reviewDaysRemaining || 14) - 1);
+
+      if (rfp.reviewDaysRemaining === 0) {
+        const airline = airlines.find(a => a.id === rfp.airlineId) || airlines[0];
+        const program = programs.find(p => p.id === rfp.playerBid?.programId) || programs[0];
+
+        const decision = evaluateRfpDecision(
+          rfp,
+          program,
+          competitors,
+          airline,
+          companyReputation,
+          currentDate,
+          rng
+        );
+
+        rfp.status = decision.status;
+        if (decision.firmContract) {
+          newContracts.push(decision.firmContract);
+          downPaymentMUSD += decision.firmContract.downPaymentReceived;
+          if (program) {
+            program.ordersBacklogCount += decision.firmContract.quantityFirm;
+          }
+        }
+        newsArticles.push(decision.newsArticle);
+      }
+    }
+    return rfp;
+  });
+
+  return {
+    updatedRfps,
+    newContracts,
+    newsArticles,
+    downPaymentMUSD
   };
 }
 
@@ -350,6 +551,7 @@ export function executeDailySimulationTick(
 
   const updatedEconomy = updateMacroEconomy(macroEconomy, rng, isMonthEnd);
 
+  // 1. Advance R&D & Test campaigns
   const { updatedPrograms, news: rndNews, milestones: rndMilestones } = advanceProgramsRnD(
     currentCompany.programs,
     currentCompany.departments,
@@ -357,6 +559,7 @@ export function executeDailySimulationTick(
     rng
   );
 
+  // 2. Advance Assembly Lines
   const {
     updatedLines,
     newDeliveries,
@@ -372,8 +575,25 @@ export function executeDailySimulationTick(
     rng
   );
 
+  // 3. Advance Autonomous RFP Reviews
+  const {
+    updatedRfps: reviewedRfps,
+    newContracts,
+    newsArticles: rfpNews,
+    downPaymentMUSD
+  } = advanceRfpReviews(
+    currentCompany.rfpProposals,
+    updatedPrograms,
+    competitors,
+    airlines,
+    currentCompany.reputationScore,
+    newDate,
+    rng
+  );
+
   const updatedFleet = [...currentCompany.activeInServiceFleet, ...newDeliveries];
 
+  // 4. Update simulated flights
   const programsRangeMap: Record<string, number> = {};
   updatedPrograms.forEach(p => { programsRangeMap[p.id] = p.performance.rangeKm; });
   const airlineHubMap: Record<string, string> = {};
@@ -388,6 +608,7 @@ export function executeDailySimulationTick(
     rng
   );
 
+  // 5. Incidents
   const newIncidents: CompanyState['incidentHistory'] = [];
   fleetWithFlightData.forEach(plane => {
     const prog = updatedPrograms.find(p => p.id === plane.programId);
@@ -404,8 +625,9 @@ export function executeDailySimulationTick(
     rng
   );
 
+  // 6. Financials Update
   const financials = { ...currentCompany.financials };
-  financials.cash += deliveryRevenueMUSD;
+  financials.cash += deliveryRevenueMUSD + downPaymentMUSD;
 
   if (isMonthEnd) {
     const monthlyPayroll = currentCompany.departments.reduce((acc, d) => {
@@ -415,18 +637,30 @@ export function executeDailySimulationTick(
 
     const facilitiesCost = currentCompany.facilities.reduce((acc, f) => acc + f.monthlyOperatingCost, 0);
 
+    // Rebalanced active R&D burn: ~2.5M to 4.5M per program
     const rdMonthlySpend = updatedPrograms.reduce((acc, p) => {
-      return acc + (p.currentPhase !== 'entry_into_service' ? 14.5 : 0);
+      if (p.currentPhase === 'entry_into_service' || p.currentPhase === 'mature_production') return acc + 0.5;
+      return acc + (p.allocatedHeadcount * 12000) / 1_000_000 + 1.8;
     }, 0);
 
     const totalMonthlyExpenses = monthlyPayroll + facilitiesCost + rdMonthlySpend;
     financials.monthlyExpenses = parseFloat(totalMonthlyExpenses.toFixed(2));
-    financials.monthlyRevenue = parseFloat(deliveryRevenueMUSD.toFixed(2));
-    financials.monthlyBurnRate = parseFloat((totalMonthlyExpenses - deliveryRevenueMUSD).toFixed(2));
+    financials.monthlyRevenue = parseFloat((deliveryRevenueMUSD + downPaymentMUSD).toFixed(2));
+    financials.monthlyBurnRate = parseFloat((totalMonthlyExpenses - (deliveryRevenueMUSD + downPaymentMUSD)).toFixed(2));
     financials.cash = parseFloat((financials.cash - totalMonthlyExpenses).toFixed(2));
+
+    // Insolvency state check
+    if (financials.cash < 0) {
+      financials.insolvencyStatus = 'insolvent';
+    } else if (financials.cash < 40) {
+      financials.insolvencyStatus = 'critical_liquidity';
+    } else {
+      financials.insolvencyStatus = 'solvent';
+    }
   }
 
-  let updatedRfps = [...currentCompany.rfpProposals];
+  // 7. Generate potential new RFPs
+  let updatedRfps = [...reviewedRfps];
   const newRfp = generatePotentialAirlineRFP(
     airlines,
     newDate,
@@ -439,6 +673,7 @@ export function executeDailySimulationTick(
     updatedRfps.push(newRfp);
   }
 
+  // 8. Competitors
   let updatedCompetitors = competitors;
   let compNews: NewsArticle[] = [];
   if (isMonthEnd) {
@@ -447,7 +682,7 @@ export function executeDailySimulationTick(
     compNews = compResult.newsArticles;
   }
 
-  const allNewArticles = [...rndNews, ...deliveryNews, ...invNews, ...compNews];
+  const allNewArticles = [...rndNews, ...deliveryNews, ...invNews, ...compNews, ...rfpNews];
   const updatedNewsHistory = [...allNewArticles, ...currentCompany.newsHistory].slice(0, 100);
 
   const allNewMilestones = [...rndMilestones, ...deliveryMilestones];
@@ -458,6 +693,7 @@ export function executeDailySimulationTick(
     financials,
     programs: updatedPrograms,
     assemblyLines: updatedLines,
+    firmContracts: [...currentCompany.firmContracts, ...newContracts],
     activeInServiceFleet: fleetWithFlightData,
     incidentHistory: updatedIncidents,
     newsHistory: updatedNewsHistory,

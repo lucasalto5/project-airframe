@@ -16,42 +16,104 @@ import { MARKET_SEGMENTS_DATA } from '../data/marketSegments';
 import { SeededRNG } from './rng';
 
 /**
+ * Check compatibility between an aircraft program and an airline RFP
+ */
+export function checkAircraftRfpCompatibility(
+  program: AircraftProgram,
+  rfp: RFPProposal
+): {
+  rating: 'excellent' | 'good' | 'marginal' | 'incompatible';
+  seatFit: 'ideal' | 'acceptable' | 'too_small' | 'too_large';
+  rangeFit: 'adequate' | 'excessive' | 'insufficient';
+  reasons: string[];
+} {
+  const seats = program.geometry.typicalSeats;
+  const range = program.performance.rangeKm;
+  const reasons: string[] = [];
+
+  let seatFit: 'ideal' | 'acceptable' | 'too_small' | 'too_large' = 'ideal';
+  if (seats < rfp.targetSeatsMin * 0.8) {
+    seatFit = 'too_small';
+    reasons.push(`Seat count (${seats}) is significantly lower than requested minimum (${rfp.targetSeatsMin})`);
+  } else if (seats > rfp.targetSeatsMax * 1.25) {
+    seatFit = 'too_large';
+    reasons.push(`Seat count (${seats}) exceeds requested maximum capacity (${rfp.targetSeatsMax})`);
+  } else if (seats < rfp.targetSeatsMin || seats > rfp.targetSeatsMax) {
+    seatFit = 'acceptable';
+  }
+
+  let rangeFit: 'adequate' | 'excessive' | 'insufficient' = 'adequate';
+  if (range < rfp.targetRangeKm * 0.88) {
+    rangeFit = 'insufficient';
+    reasons.push(`Range (${Math.round(range)} km) is insufficient for requested route network (${rfp.targetRangeKm} km)`);
+  } else if (range > rfp.targetRangeKm * 1.6) {
+    rangeFit = 'excessive';
+  }
+
+  let rating: 'excellent' | 'good' | 'marginal' | 'incompatible' = 'good';
+  if (seatFit === 'too_small' || seatFit === 'too_large' || rangeFit === 'insufficient') {
+    rating = 'incompatible';
+  } else if (seatFit === 'ideal' && rangeFit === 'adequate') {
+    rating = 'excellent';
+  } else if (seatFit === 'acceptable' || rangeFit === 'excessive') {
+    rating = 'marginal';
+  }
+
+  return { rating, seatFit, rangeFit, reasons };
+}
+
+/**
  * Periodically generate new airline RFPs (Requests for Proposals)
  */
 export function generatePotentialAirlineRFP(
   airlines: AirlineCustomer[],
   currentDate: GameDate,
   existingOpenRfps: RFPProposal[],
-  _playerTrustLevel: string,
+  playerTrustLevel: string,
   macroPassengerDemand: number,
   rng: SeededRNG
 ): RFPProposal | null {
-  if (existingOpenRfps.filter(r => r.status === 'open' || r.status === 'bid_submitted').length >= 4) {
+  const activeTenders = existingOpenRfps.filter(
+    r => r.status === 'open' || r.status === 'bid_submitted' || r.status === 'under_review'
+  );
+  if (activeTenders.length >= 4) {
     return null;
   }
 
-  const chance = 0.28 * (macroPassengerDemand / 100);
+  const chance = 0.25 * (macroPassengerDemand / 100);
   if (!rng.nextBool(chance)) return null;
 
-  const airline = rng.pick(airlines);
+  // Emerging manufacturers get smaller / regional early adopter opportunities
+  let candidateAirlines = airlines;
+  if (playerTrustLevel === 'unknown' || playerTrustLevel === 'experimental' || playerTrustLevel === 'emerging') {
+    candidateAirlines = airlines.filter(
+      a => a.businessModel === 'regional' || a.businessModel === 'low_cost' || a.riskTolerance === 'innovative' || a.activeFleetCount < 80
+    );
+    if (candidateAirlines.length === 0) candidateAirlines = airlines;
+  }
+
+  const airline = rng.pick(candidateAirlines);
   const segment = rng.pick(MARKET_SEGMENTS_DATA);
 
-  let quantityFirm = rng.nextInt(6, 24);
+  let quantityFirm = rng.nextInt(4, 12);
   if (airline.businessModel === 'ultra_low_cost' || airline.businessModel === 'legacy') {
-    quantityFirm = rng.nextInt(15, 60);
+    quantityFirm = rng.nextInt(12, 36);
   }
-  if (airline.activeFleetCount < 50) {
-    quantityFirm = rng.nextInt(4, 12);
+  if (airline.activeFleetCount < 40) {
+    quantityFirm = rng.nextInt(2, 8);
   }
 
-  const quantityOptions = Math.round(quantityFirm * rng.nextRange(0.2, 0.6));
-  const desiredDeliveryYear = currentDate.year + rng.nextInt(2, 5);
+  const quantityOptions = Math.round(quantityFirm * rng.nextRange(0.25, 0.5));
+  const desiredDeliveryYear = currentDate.year + rng.nextInt(2, 4);
 
+  const expiryDays = rng.nextInt(60, 90);
+  const expiryTotalDays = currentDate.totalDays + expiryDays;
   const expiryDate: GameDate = {
-    ...currentDate,
-    month: currentDate.month + 3 > 12 ? (currentDate.month + 3 - 12) : currentDate.month + 3,
-    year: currentDate.month + 3 > 12 ? currentDate.year + 1 : currentDate.year,
-    totalDays: currentDate.totalDays + 90
+    day: (currentDate.day + expiryDays) % 28 + 1,
+    month: Math.min(12, ((currentDate.month + Math.floor(expiryDays / 30) - 1) % 12) + 1),
+    year: currentDate.year + Math.floor((currentDate.month + Math.floor(expiryDays / 30) - 1) / 12),
+    quarter: (Math.floor(Math.min(12, ((currentDate.month + Math.floor(expiryDays / 30) - 1) % 12) + 1) / 3) + 1) as 1 | 2 | 3 | 4,
+    totalDays: expiryTotalDays
   };
 
   const weights = {
@@ -59,7 +121,7 @@ export function generatePotentialAirlineRFP(
     acquisitionPrice: airline.businessModel === 'ultra_low_cost' ? 0.30 : 0.20,
     deliverySpeed: airline.growthStrategy === 'rapid_expansion' ? 0.25 : 0.15,
     passengerComfort: airline.businessModel === 'legacy' ? 0.25 : 0.10,
-    manufacturerTrust: airline.riskTolerance === 'very_conservative' ? 0.35 : 0.15,
+    manufacturerTrust: airline.riskTolerance === 'very_conservative' ? 0.35 : 0.12,
     fleetCommonality: 0.10
   };
 
@@ -68,7 +130,8 @@ export function generatePotentialAirlineRFP(
     airlineId: airline.id,
     issuanceDate: { ...currentDate },
     expiryDate,
-    title: `${airline.name} Fleet Renewal RFP: ${segment.name}`,
+    titleKey: 'rfp.fleetRenewalTitle',
+    titleParams: { airline: airline.name, segment: segment.name },
     requestedSegment: segment.id,
     targetSeatsMin: segment.seatRange[0],
     targetSeatsMax: segment.seatRange[1],
@@ -76,9 +139,10 @@ export function generatePotentialAirlineRFP(
     quantityFirm,
     quantityOptions,
     desiredFirstDeliveryYear: desiredDeliveryYear,
-    maxAcceptableUnitPrice: segment.averagePriceMillionsUSD * 1.15,
+    maxAcceptableUnitPrice: segment.averagePriceMillionsUSD * 1.12,
     importanceWeights: weights,
-    status: 'open'
+    status: 'open',
+    reviewDaysRemaining: 0
   };
 }
 
@@ -95,10 +159,10 @@ export function scoreContractProposal(
   const w = rfp.importanceWeights;
 
   const priceRatio = proposal.offeredUnitPrice / rfp.maxAcceptableUnitPrice;
-  const priceScore = Math.max(0, Math.min(100, (1.25 - priceRatio) * 100));
+  const priceScore = Math.max(0, Math.min(100, (1.20 - priceRatio) * 120));
 
   const fuelBurn = program.performance.fuelBurnKgPerSeat1000Km;
-  const fuelScore = Math.max(0, Math.min(100, (30 - fuelBurn) * 6));
+  const fuelScore = Math.max(0, Math.min(100, (28 - fuelBurn) * 7.5));
 
   const comfortScore = program.performance.passengerComfortScore;
 
@@ -129,7 +193,7 @@ export function scoreContractProposal(
 }
 
 /**
- * Evaluate an RFP when the airline makes its final decision
+ * Evaluate an RFP when the airline makes its final decision autonomously
  */
 export function evaluateRfpDecision(
   rfp: RFPProposal,
@@ -145,30 +209,33 @@ export function evaluateRfpDecision(
   for (const comp of competitors) {
     const family = comp.activeAircraftFamilies.find(f => f.segment === rfp.requestedSegment);
     if (family) {
-      const compScore = Math.min(95, comp.reputation * 0.4 + family.fuelBurnScore * 0.35 + rng.nextInt(15, 30));
+      const compScore = Math.min(95, comp.reputation * 0.35 + family.fuelBurnScore * 0.35 + rng.nextInt(10, 25));
       matchingCompetitorPlanes.push({
         comp,
         planeName: family.name,
         score: compScore,
-        price: family.listPrice * 0.82
+        price: family.listPrice * 0.84
       });
     }
   }
 
   const bestCompetitor = matchingCompetitorPlanes.sort((a, b) => b.score - a.score)[0] || {
     comp: competitors[0],
-    planeName: 'Titan 730',
-    score: 65,
-    price: rfp.maxAcceptableUnitPrice * 0.85
+    planeName: 'Competitor Model',
+    score: 62,
+    price: rfp.maxAcceptableUnitPrice * 0.88
   };
 
   let playerWon = false;
   let playerScore = 0;
 
   if (rfp.playerBid && program) {
-    playerScore = scoreContractProposal(rfp.playerBid, rfp, program, airline, playerTrustScore);
-    if (playerScore > bestCompetitor.score) {
-      playerWon = true;
+    const compat = checkAircraftRfpCompatibility(program, rfp);
+    if (compat.rating !== 'incompatible') {
+      playerScore = scoreContractProposal(rfp.playerBid, rfp, program, airline, playerTrustScore);
+      if (playerScore >= bestCompetitor.score) {
+        playerWon = true;
+      }
     }
   }
 
@@ -220,7 +287,14 @@ export function evaluateRfpDecision(
       source: 'Aviation Week Global Dispatch',
       summary: `${airline.name} has officially awarded its ${rfp.requestedSegment.replace(/_/g, ' ')} tender to the ${program.name}, placing a firm order for ${rfp.playerBid.quantityFirm} aircraft plus ${rfp.playerBid.quantityOptions} options.`,
       impactSubjectId: program.id,
-      impactType: 'orders'
+      impactType: 'orders',
+      templateId: 'news.templates.rfpWon',
+      templateParams: {
+        airline: airline.name,
+        aircraft: program.name,
+        quantity: rfp.playerBid.quantityFirm,
+        valueB: (totalContractValue / 1000).toFixed(2)
+      }
     };
 
     return {
@@ -237,7 +311,14 @@ export function evaluateRfpDecision(
       source: 'FlightGlobal Market Intelligence',
       summary: `${airline.name} has finalized a purchasing agreement with ${bestCompetitor.comp.name} for ${rfp.quantityFirm} units of the ${bestCompetitor.planeName}.`,
       impactSubjectId: rfp.id,
-      impactType: 'industry'
+      impactType: 'industry',
+      templateId: 'news.templates.rfpLost',
+      templateParams: {
+        airline: airline.name,
+        competitor: bestCompetitor.comp.name,
+        quantity: rfp.quantityFirm,
+        planeName: bestCompetitor.planeName
+      }
     };
 
     return {

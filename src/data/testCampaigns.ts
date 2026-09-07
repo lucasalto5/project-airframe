@@ -2,159 +2,404 @@
 // PROJECT AIRFRAME - FLIGHT TEST & CERTIFICATION CAMPAIGNS DATASET
 // ============================================================================
 
+export interface TestAnomalyOption {
+  labelKey: string;
+  descKey: string;
+  costMUSD: number;
+  delayDays: number;
+  techDebtAdded: number;
+  safetyReliabilityImpact: number;
+}
+
+export interface TestAnomalyDefinition {
+  id: string;
+  titleKey: string;
+  descKey: string;
+  severity: 'observation' | 'level_2_minor' | 'level_1_major' | 'airworthiness_blocker';
+  options: TestAnomalyOption[];
+}
+
 export interface TestScenarioDefinition {
   id: string;
-  name: string;
+  nameKey: string;
   category: 'ground' | 'flight';
-  description: string;
+  descKey: string;
   minPhase: 'prototype_build' | 'ground_testing' | 'flight_testing';
-  requiredFlightHours: number;
+  durationDays: number;
+  flightHoursLogged: number;
+  envelopeGainPercent: number;
+  costMUSD: number;
+  isMandatoryForCert: boolean;
   riskFactor: number; // 0 - 100
-  potentialAnomalies: {
-    id: string;
-    title: string;
-    description: string;
-    severity: 'observation' | 'level_2_minor' | 'level_1_major' | 'airworthiness_blocker';
-    options: {
-      label: string;
-      description: string;
-      costMUSD: number;
-      delayDays: number;
-      techDebtAdded: number;
-      safetyReliabilityImpact: number;
-    }[];
-  }[];
+  potentialAnomalies: TestAnomalyDefinition[];
 }
 
 export const TEST_SCENARIOS: TestScenarioDefinition[] = [
-  // Ground Tests
+  // ==========================================
+  // GROUND TEST CAMPAIGNS
+  // ==========================================
   {
     id: 'structural_ultimate_load',
-    name: '150% Structural Ultimate Load Test',
+    nameKey: 'testing.scenarios.structural_ultimate_load.name',
     category: 'ground',
-    description: 'Hydraulic actuators bend the carbon-aluminum wing box to 1.5x maximum aerodynamic limit until catastrophic fracture.',
+    descKey: 'testing.scenarios.structural_ultimate_load.desc',
     minPhase: 'ground_testing',
-    requiredFlightHours: 0,
-    riskFactor: 35,
+    durationDays: 14,
+    flightHoursLogged: 0,
+    envelopeGainPercent: 0,
+    costMUSD: 8.5,
+    isMandatoryForCert: true,
+    riskFactor: 30,
     potentialAnomalies: [
       {
         id: 'wing_root_delamination',
-        title: 'Premature Wing Root Fastener Delamination',
-        description: 'During 142% ultimate bending load, localized composite fiber delamination was detected at the lower rear spar attachment.',
+        titleKey: 'testing.anomalies.wing_root_delamination.title',
+        descKey: 'testing.anomalies.wing_root_delamination.desc',
         severity: 'level_1_major',
         options: [
-          { label: 'Reinforce Lower Spar Caps with Titanium Straps', description: 'Immediate titanium doubler retrofit adding 180 kg of structural weight.', costMUSD: 18.5, delayDays: 45, techDebtAdded: 0, safetyReliabilityImpact: 10 },
-          { label: 'Recalibrate FBW Load Alleviation Law in Software', description: 'Use active aileron/spoiler deflection to unload wingtips during high-g maneuvers without adding physical weight.', costMUSD: 6.2, delayDays: 20, techDebtAdded: 8, safetyReliabilityImpact: 4 }
+          {
+            labelKey: 'testing.anomalies.wing_root_delamination.opt1_label',
+            descKey: 'testing.anomalies.wing_root_delamination.opt1_desc',
+            costMUSD: 18.5,
+            delayDays: 45,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 10
+          },
+          {
+            labelKey: 'testing.anomalies.wing_root_delamination.opt2_label',
+            descKey: 'testing.anomalies.wing_root_delamination.opt2_desc',
+            costMUSD: 6.2,
+            delayDays: 20,
+            techDebtAdded: 8,
+            safetyReliabilityImpact: 4
+          }
         ]
       }
     ]
   },
   {
     id: 'cabin_emergency_evacuation',
-    name: '90-Second Full Cabin Evacuation Drill',
+    nameKey: 'testing.scenarios.cabin_emergency_evacuation.name',
     category: 'ground',
-    description: 'Evacuate maximum certified passenger load in total darkness with 50% of emergency slide exits deliberately blocked.',
+    descKey: 'testing.scenarios.cabin_emergency_evacuation.desc',
     minPhase: 'ground_testing',
-    requiredFlightHours: 0,
+    durationDays: 5,
+    flightHoursLogged: 0,
+    envelopeGainPercent: 0,
+    costMUSD: 2.2,
+    isMandatoryForCert: true,
     riskFactor: 20,
     potentialAnomalies: [
       {
         id: 'overwing_slide_jam',
-        title: 'Overwing Exit Hatch Deployment Snag',
-        description: 'Overwing Type III escape slide deployed 4 seconds late due to pneumatic gas generator pressure drop in cold ambient conditions.',
+        titleKey: 'testing.anomalies.overwing_slide_jam.title',
+        descKey: 'testing.anomalies.overwing_slide_jam.desc',
         severity: 'level_2_minor',
         options: [
-          { label: 'Redesign Aspirator Valve with Heated Solenoid', description: 'Standard industrial fix ensuring reliable sub-zero inflation.', costMUSD: 4.8, delayDays: 18, techDebtAdded: 0, safetyReliabilityImpact: 8 },
-          { label: 'Update Emergency Operating Manual Procedures', description: 'Operational procedural change without redesign.', costMUSD: 0.8, delayDays: 5, techDebtAdded: 12, safetyReliabilityImpact: -4 }
+          {
+            labelKey: 'testing.anomalies.overwing_slide_jam.opt1_label',
+            descKey: 'testing.anomalies.overwing_slide_jam.opt1_desc',
+            costMUSD: 4.8,
+            delayDays: 18,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 8
+          },
+          {
+            labelKey: 'testing.anomalies.overwing_slide_jam.opt2_label',
+            descKey: 'testing.anomalies.overwing_slide_jam.opt2_desc',
+            costMUSD: 0.8,
+            delayDays: 5,
+            techDebtAdded: 12,
+            safetyReliabilityImpact: -4
+          }
         ]
       }
     ]
   },
+  {
+    id: 'landing_gear_rto_brakes',
+    nameKey: 'testing.scenarios.landing_gear_rto_brakes.name',
+    category: 'ground',
+    descKey: 'testing.scenarios.landing_gear_rto_brakes.desc',
+    minPhase: 'ground_testing',
+    durationDays: 7,
+    flightHoursLogged: 0,
+    envelopeGainPercent: 0,
+    costMUSD: 4.2,
+    isMandatoryForCert: true,
+    riskFactor: 25,
+    potentialAnomalies: [
+      {
+        id: 'carbon_brake_thermal_fuse',
+        titleKey: 'testing.anomalies.carbon_brake_thermal_fuse.title',
+        descKey: 'testing.anomalies.carbon_brake_thermal_fuse.desc',
+        severity: 'level_2_minor',
+        options: [
+          {
+            labelKey: 'testing.anomalies.carbon_brake_thermal_fuse.opt1_label',
+            descKey: 'testing.anomalies.carbon_brake_thermal_fuse.opt1_desc',
+            costMUSD: 3.5,
+            delayDays: 14,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'iron_bird_systems_integration',
+    nameKey: 'testing.scenarios.iron_bird_systems_integration.name',
+    category: 'ground',
+    descKey: 'testing.scenarios.iron_bird_systems_integration.desc',
+    minPhase: 'ground_testing',
+    durationDays: 12,
+    flightHoursLogged: 0,
+    envelopeGainPercent: 0,
+    costMUSD: 6.0,
+    isMandatoryForCert: true,
+    riskFactor: 20,
+    potentialAnomalies: []
+  },
 
-  // Flight Tests
+  // ==========================================
+  // FLIGHT TEST CAMPAIGNS
+  // ==========================================
+  {
+    id: 'basic_handling_qualities',
+    nameKey: 'testing.scenarios.basic_handling_qualities.name',
+    category: 'flight',
+    descKey: 'testing.scenarios.basic_handling_qualities.desc',
+    minPhase: 'flight_testing',
+    durationDays: 4,
+    flightHoursLogged: 20,
+    envelopeGainPercent: 5,
+    costMUSD: 1.4,
+    isMandatoryForCert: false,
+    riskFactor: 15,
+    potentialAnomalies: []
+  },
+  {
+    id: 'stall_campaign',
+    nameKey: 'testing.scenarios.stall_campaign.name',
+    category: 'flight',
+    descKey: 'testing.scenarios.stall_campaign.desc',
+    minPhase: 'flight_testing',
+    durationDays: 8,
+    flightHoursLogged: 32,
+    envelopeGainPercent: 12,
+    costMUSD: 2.8,
+    isMandatoryForCert: true,
+    riskFactor: 40,
+    potentialAnomalies: [
+      {
+        id: 'stick_pusher_pitch_instability',
+        titleKey: 'testing.anomalies.stick_pusher_pitch_instability.title',
+        descKey: 'testing.anomalies.stick_pusher_pitch_instability.desc',
+        severity: 'level_1_major',
+        options: [
+          {
+            labelKey: 'testing.anomalies.stick_pusher_pitch_instability.opt1_label',
+            descKey: 'testing.anomalies.stick_pusher_pitch_instability.opt1_desc',
+            costMUSD: 12.0,
+            delayDays: 30,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 8
+          },
+          {
+            labelKey: 'testing.anomalies.stick_pusher_pitch_instability.opt2_label',
+            descKey: 'testing.anomalies.stick_pusher_pitch_instability.opt2_desc',
+            costMUSD: 4.5,
+            delayDays: 14,
+            techDebtAdded: 6,
+            safetyReliabilityImpact: 2
+          }
+        ]
+      }
+    ]
+  },
   {
     id: 'flutter_envelope_expansion',
-    name: 'High-Speed Mach Dive & Flutter Margins',
+    nameKey: 'testing.scenarios.flutter_envelope_expansion.name',
     category: 'flight',
-    description: 'Dive the aircraft to maximum design diving speed (Vd / Md = Mach 0.93) to verify aeroelastic damping across the empennage.',
+    descKey: 'testing.scenarios.flutter_envelope_expansion.desc',
     minPhase: 'flight_testing',
-    requiredFlightHours: 65,
-    riskFactor: 60,
+    durationDays: 9,
+    flightHoursLogged: 42,
+    envelopeGainPercent: 15,
+    costMUSD: 3.6,
+    isMandatoryForCert: true,
+    riskFactor: 55,
     potentialAnomalies: [
       {
         id: 'horizontal_stabilizer_resonance',
-        title: 'Aeroelastic Tail Buffeting at Mach 0.89',
-        description: 'Telemetry captured sustained 12 Hz torsional oscillation in the horizontal stabilizer during high dynamic pressure transonic cruise.',
+        titleKey: 'testing.anomalies.horizontal_stabilizer_resonance.title',
+        descKey: 'testing.anomalies.horizontal_stabilizer_resonance.desc',
         severity: 'airworthiness_blocker',
         options: [
-          { label: 'Full Empennage Fairing Redesign & Stiffener Gussets', description: 'Aerodynamically clean re-sculpting of the tailcone with internal stiffeners.', costMUSD: 38.0, delayDays: 90, techDebtAdded: 0, safetyReliabilityImpact: 15 },
-          { label: 'Add Active Fly-by-Wire Flutter Damping Yaw-Damper Loop', description: 'Software-driven control surface oscillation compensation.', costMUSD: 14.5, delayDays: 30, techDebtAdded: 15, safetyReliabilityImpact: 5 },
-          { label: 'Restrict Maximum Operating Mach (Mmo) by 0.02', description: 'Cap top speed, slightly degrading competitive cruise performance but avoiding redesign.', costMUSD: 2.0, delayDays: 7, techDebtAdded: 20, safetyReliabilityImpact: 0 }
+          {
+            labelKey: 'testing.anomalies.horizontal_stabilizer_resonance.opt1_label',
+            descKey: 'testing.anomalies.horizontal_stabilizer_resonance.opt1_desc',
+            costMUSD: 38.0,
+            delayDays: 90,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 15
+          },
+          {
+            labelKey: 'testing.anomalies.horizontal_stabilizer_resonance.opt2_label',
+            descKey: 'testing.anomalies.horizontal_stabilizer_resonance.opt2_desc',
+            costMUSD: 14.5,
+            delayDays: 30,
+            techDebtAdded: 15,
+            safetyReliabilityImpact: 5
+          }
         ]
       }
     ]
   },
   {
     id: 'hot_and_high_trials',
-    name: 'Hot & High Altitude Takeoff Performance',
+    nameKey: 'testing.scenarios.hot_and_high_trials.name',
     category: 'flight',
-    description: 'Deploy prototype to high-altitude airports (e.g. Denver KDEN or Bogotá SKBO at 8,300ft elevation) in 38°C ambient heat.',
+    descKey: 'testing.scenarios.hot_and_high_trials.desc',
     minPhase: 'flight_testing',
-    requiredFlightHours: 45,
-    riskFactor: 40,
+    durationDays: 7,
+    flightHoursLogged: 28,
+    envelopeGainPercent: 8,
+    costMUSD: 2.5,
+    isMandatoryForCert: true,
+    riskFactor: 35,
     potentialAnomalies: [
       {
         id: 'engine_turbine_interstage_temp_spike',
-        title: 'FADEC Turbine Interstage Temp Margin Breach',
-        description: 'Full-power single-engine takeoff in thin 38°C air caused FADEC to automatically throttle back 4% to prevent turbine blade creep.',
+        titleKey: 'testing.anomalies.engine_turbine_interstage_temp_spike.title',
+        descKey: 'testing.anomalies.engine_turbine_interstage_temp_spike.desc',
         severity: 'level_1_major',
         options: [
-          { label: 'Co-develop Thermal Ceramic Coating Engine Upgrade with Supplier', description: 'Upgraded turbine stator vanes with advanced ceramic matrix composites.', costMUSD: 24.0, delayDays: 60, techDebtAdded: 0, safetyReliabilityImpact: 12 },
-          { label: 'Publish Hot & High MTOW Derating Chart', description: 'Reduce allowable payload when taking off in extreme hot-and-high conditions.', costMUSD: 1.2, delayDays: 10, techDebtAdded: 5, safetyReliabilityImpact: 2 }
+          {
+            labelKey: 'testing.anomalies.engine_turbine_interstage_temp_spike.opt1_label',
+            descKey: 'testing.anomalies.engine_turbine_interstage_temp_spike.opt1_desc',
+            costMUSD: 24.0,
+            delayDays: 60,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 12
+          },
+          {
+            labelKey: 'testing.anomalies.engine_turbine_interstage_temp_spike.opt2_label',
+            descKey: 'testing.anomalies.engine_turbine_interstage_temp_spike.opt2_desc',
+            costMUSD: 1.2,
+            delayDays: 10,
+            techDebtAdded: 5,
+            safetyReliabilityImpact: 2
+          }
         ]
       }
     ]
   },
   {
     id: 'natural_icing_campaign',
-    name: 'Severe Meteorological Natural Icing Trials',
+    nameKey: 'testing.scenarios.natural_icing_campaign.name',
     category: 'flight',
-    description: 'Hunt for supercooled liquid water cloud formations to test wing leading edge bleed air thermal de-icing and pitot probe heaters.',
+    descKey: 'testing.scenarios.natural_icing_campaign.desc',
     minPhase: 'flight_testing',
-    requiredFlightHours: 55,
-    riskFactor: 45,
+    durationDays: 8,
+    flightHoursLogged: 34,
+    envelopeGainPercent: 10,
+    costMUSD: 3.1,
+    isMandatoryForCert: true,
+    riskFactor: 40,
     potentialAnomalies: [
       {
         id: 'windshield_optical_distortion_ice',
-        title: 'Cockpit Side Window De-ice Heating Non-Uniformity',
-        description: 'In severe icing conditions, uneven electro-thermal heating caused runback ice accumulation on the lower side cockpit windshield.',
+        titleKey: 'testing.anomalies.windshield_optical_distortion_ice.title',
+        descKey: 'testing.anomalies.windshield_optical_distortion_ice.desc',
         severity: 'level_2_minor',
         options: [
-          { label: 'Upgrade to High-Wattage Dual-Zone Heating Controllers', description: 'Redesigned electrical controller with independent sensor feedback.', costMUSD: 5.5, delayDays: 25, techDebtAdded: 0, safetyReliabilityImpact: 6 },
-          { label: 'Apply Hydrophobic Chemical Coating as Maintenance Task', description: 'Recurring airline ground maintenance application without hardware changes.', costMUSD: 0.9, delayDays: 8, techDebtAdded: 10, safetyReliabilityImpact: -2 }
+          {
+            labelKey: 'testing.anomalies.windshield_optical_distortion_ice.opt1_label',
+            descKey: 'testing.anomalies.windshield_optical_distortion_ice.opt1_desc',
+            costMUSD: 5.5,
+            delayDays: 25,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 6
+          },
+          {
+            labelKey: 'testing.anomalies.windshield_optical_distortion_ice.opt2_label',
+            descKey: 'testing.anomalies.windshield_optical_distortion_ice.opt2_desc',
+            costMUSD: 0.9,
+            delayDays: 8,
+            techDebtAdded: 10,
+            safetyReliabilityImpact: -2
+          }
         ]
       }
     ]
   },
   {
     id: 'crosswind_landing_trials',
-    name: '35-Knot Gusting Crosswind Landings',
+    nameKey: 'testing.scenarios.crosswind_landing_trials.name',
     category: 'flight',
-    description: 'Validate crab-angle decrab maneuvers, rudder control authority, and main landing gear side-load absorption in 38 kt direct crosswinds.',
+    descKey: 'testing.scenarios.crosswind_landing_trials.desc',
     minPhase: 'flight_testing',
-    requiredFlightHours: 40,
+    durationDays: 6,
+    flightHoursLogged: 24,
+    envelopeGainPercent: 7,
+    costMUSD: 2.1,
+    isMandatoryForCert: true,
     riskFactor: 30,
     potentialAnomalies: [
       {
         id: 'rudder_travel_limit_saturation',
-        title: 'Rudder Ratio Changer Sensor Jitter in High Gusts',
-        description: 'Sudden crosswind sheer caused brief hydraulic servo pressure pulsation on the lower rudder actuator.',
+        titleKey: 'testing.anomalies.rudder_travel_limit_saturation.title',
+        descKey: 'testing.anomalies.rudder_travel_limit_saturation.desc',
         severity: 'level_1_major',
         options: [
-          { label: 'Install Dual-Channel Direct-Drive Hydraulic Actuators', description: 'Hardware replacement with higher bandwidth hydraulic servo valves.', costMUSD: 12.0, delayDays: 35, techDebtAdded: 0, safetyReliabilityImpact: 10 },
-          { label: 'Filter Sensor Noise in Primary Flight Computer Software', description: 'Software digital low-pass filtering adjustment.', costMUSD: 3.2, delayDays: 14, techDebtAdded: 6, safetyReliabilityImpact: 3 }
+          {
+            labelKey: 'testing.anomalies.rudder_travel_limit_saturation.opt1_label',
+            descKey: 'testing.anomalies.rudder_travel_limit_saturation.opt1_desc',
+            costMUSD: 12.0,
+            delayDays: 35,
+            techDebtAdded: 0,
+            safetyReliabilityImpact: 10
+          },
+          {
+            labelKey: 'testing.anomalies.rudder_travel_limit_saturation.opt2_label',
+            descKey: 'testing.anomalies.rudder_travel_limit_saturation.opt2_desc',
+            costMUSD: 3.2,
+            delayDays: 14,
+            techDebtAdded: 6,
+            safetyReliabilityImpact: 3
+          }
         ]
       }
     ]
+  },
+  {
+    id: 'autoland_cat3_validation',
+    nameKey: 'testing.scenarios.autoland_cat3_validation.name',
+    category: 'flight',
+    descKey: 'testing.scenarios.autoland_cat3_validation.desc',
+    minPhase: 'flight_testing',
+    durationDays: 6,
+    flightHoursLogged: 26,
+    envelopeGainPercent: 8,
+    costMUSD: 2.4,
+    isMandatoryForCert: false,
+    riskFactor: 25,
+    potentialAnomalies: []
+  },
+  {
+    id: 'long_range_endurance_validation',
+    nameKey: 'testing.scenarios.long_range_endurance_validation.name',
+    category: 'flight',
+    descKey: 'testing.scenarios.long_range_endurance_validation.desc',
+    minPhase: 'flight_testing',
+    durationDays: 10,
+    flightHoursLogged: 48,
+    envelopeGainPercent: 12,
+    costMUSD: 4.2,
+    isMandatoryForCert: false,
+    riskFactor: 20,
+    potentialAnomalies: []
   }
 ];

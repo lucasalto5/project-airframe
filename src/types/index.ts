@@ -203,6 +203,8 @@ export interface Financials {
   sharePrice?: number;
   sharesOutstanding: number;
   isPubliclyTraded: boolean;
+  insolvencyStatus: 'solvent' | 'critical_liquidity' | 'insolvent';
+  emergencyFundingUsed: boolean;
   quarterlyHistory: {
     year: number;
     quarter: number;
@@ -247,7 +249,7 @@ export interface PropulsionConfig {
   thrustPerEngineKN: number;       // kN (e.g. 100 - 450 kN)
   fanDiameterMeters: number;      // meters (e.g. 1.7 - 3.2m)
   bypassRatio: number;            // e.g. 8.5 to 14.0
-  cruiseSFC: number;              // Specific Fuel Consumption kg/(kN*h)
+  cruiseSFC: number;              // Specific Fuel Consumption lb/(lbf*h)
   dryWeightKg: number;
   pricePerEngine: number;
 }
@@ -302,6 +304,36 @@ export interface EstimatedVsActual<T> {
   isConfirmed: boolean;
 }
 
+export interface ProgramScheduleMilestones {
+  launchDate: GameDate;
+  projectedFirstFlight: GameDate;
+  projectedCertification: GameDate;
+  projectedEis: GameDate;
+  actualFirstFlight?: GameDate;
+  actualCertification?: GameDate;
+  actualEis?: GameDate;
+  delayLog: {
+    id: string;
+    date: GameDate;
+    reasonKey: string;
+    reasonParams?: Record<string, any>;
+    daysAdded: number;
+  }[];
+}
+
+export interface ActiveTestMission {
+  id: string;
+  scenarioId: string;
+  prototypeId: string;
+  startDate: GameDate;
+  durationDays: number;
+  daysElapsed: number;
+  flightHoursExpected: number;
+  envelopeGainExpected: number;
+  costMUSD: number;
+  status: 'running' | 'completed' | 'requires_retest';
+}
+
 export interface AircraftProgram {
   id: string;
   name: string;             // e.g. "A120"
@@ -315,6 +347,9 @@ export interface AircraftProgram {
   actualEisDate?: GameDate;
   currentPhase: ProgramPhase;
   phaseProgressPercent: number; // 0 - 100
+  phaseElapsedDays: number;
+  phaseEstimatedDurationDays: number;
+  scheduleMilestones: ProgramScheduleMilestones;
   
   // Design specifications
   geometry: AircraftGeometry;
@@ -338,6 +373,10 @@ export interface AircraftProgram {
   
   // Testing & Certification
   prototypesBuilt: PrototypeAircraft[];
+  activeTestMissions: ActiveTestMission[];
+  completedScenarioIds: string[];
+  groundTestsCompleted: number;
+  groundTestsTotal: number;
   testCampaignsProgress: {
     groundTestsCompleted: number;
     groundTestsTotal: number;
@@ -380,6 +419,7 @@ export interface PrototypeAircraft {
   cycles: number;
   completionPercent: number;
   assignedLocationAirportId: string;
+  currentMissionId?: string;
   currentFlightActivity?: {
     testScenarioId: string;
     originAirportId: string;
@@ -395,8 +435,8 @@ export interface PrototypeAircraft {
 export interface CertificationFinding {
   id: string;
   programId: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
   severity: 'observation' | 'level_2_minor' | 'level_1_major' | 'airworthiness_blocker';
   status: 'open' | 'investigating' | 'redesign_in_progress' | 'verified_resolved';
   costToFix: number;
@@ -428,13 +468,16 @@ export interface AssemblyLine {
   name: string;
   facilityId: string;
   programId: string;
+  status: 'tooling_in_progress' | 'ready_for_production' | 'active_producing';
+  toolingDaysRemaining: number;
+  toolingTotalCostMUSD: number;
   maxMonthlyRate: number;
   currentMonthlyRateTarget: number;
   actualMonthlyRate: number;
   automationLevel: number; // 1 - 5
   qualityControlMaturity: number; // 0 - 100
   workerSkillScore: number;
-  activeBottleneck?: string;
+  activeBottleneckKey?: string;
   activeUnitsOnLine: AssemblyUnit[];
 }
 
@@ -446,6 +489,7 @@ export interface AssemblyUnit {
   currentStationIndex: number; // 0 to 7
   stationProgressPercent: number;
   qualityDefectsCount: number;
+  startedDate: GameDate;
   estimatedDeliveryDate: GameDate;
 }
 
@@ -525,7 +569,8 @@ export interface RFPProposal {
   airlineId: string;
   issuanceDate: GameDate;
   expiryDate: GameDate;
-  title: string;
+  titleKey: string;
+  titleParams?: Record<string, any>;
   requestedSegment: MarketSegmentId;
   targetSeatsMin: number;
   targetSeatsMax: number;
@@ -542,7 +587,8 @@ export interface RFPProposal {
     manufacturerTrust: number;
     fleetCommonality: number;
   };
-  status: 'open' | 'bid_submitted' | 'under_review' | 'won_by_player' | 'lost_to_competitor' | 'cancelled';
+  status: 'open' | 'bid_submitted' | 'under_review' | 'won_by_player' | 'lost_to_competitor' | 'expired' | 'cancelled';
+  reviewDaysRemaining: number;
   playerBid?: ContractProposal;
   competitorWinningBid?: {
     competitorId: string;
@@ -665,6 +711,8 @@ export interface NewsArticle {
   summary: string;
   impactSubjectId?: string;
   impactType?: 'stock' | 'reputation' | 'orders' | 'industry';
+  templateId?: string;
+  templateParams?: Record<string, string | number>;
 }
 
 export interface HistoricMilestone {
@@ -674,6 +722,8 @@ export interface HistoricMilestone {
   description: string;
   iconName: string;
   rewardReputation: number;
+  templateId?: string;
+  templateParams?: Record<string, string | number>;
 }
 
 export interface SupplierPartner {
@@ -759,5 +809,3 @@ export interface AircraftDraft {
     stripeStyle: 'straight' | 'swept' | 'dynamic' | 'minimalist';
   };
 }
-
-

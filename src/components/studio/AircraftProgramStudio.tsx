@@ -3,7 +3,8 @@
 // ============================================================================
 
 import React, { useState } from 'react';
-import { useGameStore } from '../../store/gameStore';
+import { useGameStore, DEFAULT_AIRCRAFT_DRAFT } from '../../store/gameStore';
+import { useTranslation, formatCurrency, formatDistance } from '../../i18n';
 import { TechnicalBlueprint } from './TechnicalBlueprint';
 import type {
   MarketSegmentId,
@@ -14,7 +15,11 @@ import type {
   AircraftDraft
 } from '../../types';
 import { THIRD_PARTY_ENGINE_CATALOG } from '../../data/suppliers';
-import { synthesizeAircraftSpecs } from '../../simulation/formulas';
+import {
+  synthesizeAircraftSpecs,
+  detectDesignSanityWarnings,
+  calculateDesignDelta
+} from '../../simulation/formulas';
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,12 +27,15 @@ import {
   ChevronUp,
   Rocket,
   Plus,
-  Check
+  AlertTriangle,
+  HelpCircle,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 const TOTAL_STEPS = 14;
 
-const STEP_TITLES = [
+const STEP_TITLES_KEYS = [
   'Mission & Category',
   'Cabin Cross-Section',
   'Fuselage & Capacity',
@@ -55,10 +63,13 @@ export const AircraftProgramStudio: React.FC = () => {
     setAircraftDraftStep
   } = useGameStore();
 
+  const { t, locale, isPtBr } = useTranslation();
+
   const [isDesigningNew, setIsDesigningNew] = useState(
     !selectedProgramId || company.programs.length === 0
   );
   const [showTechDetails, setShowTechDetails] = useState(false);
+  const [showWhyReasoning, setShowWhyReasoning] = useState(false);
 
   // Active Draft state
   const step = aircraftDraft.currentStep || 1;
@@ -68,10 +79,18 @@ export const AircraftProgramStudio: React.FC = () => {
   const segment = aircraftDraft.marketSegment;
   const progName = aircraftDraft.name;
 
-  // Synthesize current specs
+  // Synthesize current specs & baseline for delta comparison
   const synth = synthesizeAircraftSpecs(geom, prop, sys, segment);
+  const baselineSynth = synthesizeAircraftSpecs(
+    DEFAULT_AIRCRAFT_DRAFT.geometry,
+    DEFAULT_AIRCRAFT_DRAFT.propulsion,
+    DEFAULT_AIRCRAFT_DRAFT.systems,
+    DEFAULT_AIRCRAFT_DRAFT.marketSegment
+  );
 
-  // Sync step change
+  const deltas = calculateDesignDelta(baselineSynth, synth);
+  const warnings = detectDesignSanityWarnings(geom, prop, sys, synth.mass, synth.perf);
+
   const handleNextStep = () => {
     if (step < TOTAL_STEPS) {
       setAircraftDraftStep(step + 1);
@@ -96,7 +115,7 @@ export const AircraftProgramStudio: React.FC = () => {
     setIsDesigningNew(false);
   };
 
-  // Determine active component to highlight in CAD blueprint
+  // Active component highlight in CAD blueprint
   const getHighlightComponent = (): 'fuselage' | 'wing' | 'propulsion' | 'winglet' | 'cabin' | 'all' => {
     if (step === 2 || step === 3) return 'fuselage';
     if (step === 4 || step === 5) return 'wing';
@@ -105,21 +124,21 @@ export const AircraftProgramStudio: React.FC = () => {
     return 'all';
   };
 
-  // If viewing existing programs and not in designer mode
+  // If viewing existing programs
   if (!isDesigningNew && company.programs.length > 0) {
     const selectedProg = company.programs.find(p => p.id === selectedProgramId) || company.programs[0];
     const progSynth = synthesizeAircraftSpecs(selectedProg.geometry, selectedProg.propulsion, selectedProg.systems, selectedProg.marketSegment);
 
     return (
-      <div className="w-full h-full flex flex-col bg-[#0D0D0D] text-[#F5F5F3] overflow-hidden">
+      <div className="w-full h-full flex flex-col bg-[#0D0D0D] text-[#F5F5F3] overflow-hidden select-none font-sans">
         {/* Header */}
-        <div className="h-16 px-8 border-b border-[#242424] flex items-center justify-between">
+        <div className="h-16 px-8 border-b border-[#242424] bg-[#141414] flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-[#F5F5F3]">
-              Aircraft Programs & Engineering
+              {t('navigation.aircraft')}
             </h1>
             <p className="text-xs text-[#A1A19A]">
-              Manage commercial airliner families, active development, and design iterations.
+              {isPtBr ? 'Gerencie famílias de aeronaves comerciais, desenvolvimento e iterações de projeto.' : 'Manage commercial airliner families, active development, and design iterations.'}
             </p>
           </div>
 
@@ -128,10 +147,10 @@ export const AircraftProgramStudio: React.FC = () => {
               setIsDesigningNew(true);
               setAircraftDraftStep(1);
             }}
-            className="btn-aerospace primary h-10 px-5 flex items-center gap-2"
+            className="btn-aerospace primary h-10 px-5 flex items-center gap-2 text-xs font-semibold shadow-md"
           >
             <Plus className="w-4 h-4" />
-            + New Aircraft Program
+            {isPtBr ? '+ Novo Projeto de Aeronave' : '+ New Aircraft Program'}
           </button>
         </div>
 
@@ -140,7 +159,7 @@ export const AircraftProgramStudio: React.FC = () => {
           {/* Left: Program List */}
           <div className="w-72 bg-[#141414] border-r border-[#242424] p-4 flex flex-col gap-2 overflow-y-auto">
             <div className="text-[11px] font-mono uppercase tracking-wider text-[#666660] px-2 py-1">
-              Active Programs ({company.programs.length})
+              {isPtBr ? `Programas Ativos (${company.programs.length})` : `Active Programs (${company.programs.length})`}
             </div>
             {company.programs.map(p => (
               <button
@@ -178,7 +197,7 @@ export const AircraftProgramStudio: React.FC = () => {
           <div className="w-96 bg-[#141414] border-l border-[#242424] p-6 flex flex-col gap-6 overflow-y-auto font-sans">
             <div>
               <div className="text-xs font-mono uppercase tracking-wider text-[#666660]">
-                PROGRAM SPECIFICATIONS
+                {isPtBr ? 'ESPECIFICAÇÕES DO PROGRAMA' : 'PROGRAM SPECIFICATIONS'}
               </div>
               <h2 className="text-2xl font-bold text-[#F5F5F3] mt-1">{selectedProg.name}</h2>
               <div className="text-sm text-[#A1A19A] capitalize">
@@ -189,37 +208,37 @@ export const AircraftProgramStudio: React.FC = () => {
             {/* Key Inline Data Metrics */}
             <div className="grid grid-cols-2 gap-4 py-4 border-y border-[#242424] font-mono text-sm">
               <div>
-                <div className="text-[11px] text-[#666660] uppercase">Max Range</div>
-                <div className="text-lg font-semibold text-[#F5F5F3]">{Math.round(progSynth.perf.rangeKm).toLocaleString()} km</div>
+                <div className="text-[11px] text-[#666660] uppercase">{isPtBr ? 'Alcance Máximo' : 'Max Range'}</div>
+                <div className="text-lg font-semibold text-[#F5F5F3]">{formatDistance(progSynth.perf.rangeKm, locale)}</div>
               </div>
               <div>
-                <div className="text-[11px] text-[#666660] uppercase">Passenger Seats</div>
+                <div className="text-[11px] text-[#666660] uppercase">{isPtBr ? 'Assentos' : 'Passenger Seats'}</div>
                 <div className="text-lg font-semibold text-[#F5F5F3]">{selectedProg.geometry.typicalSeats} pax</div>
               </div>
               <div>
-                <div className="text-[11px] text-[#666660] uppercase">Max Takeoff Wt</div>
+                <div className="text-[11px] text-[#666660] uppercase">MTOW</div>
                 <div className="text-lg font-semibold text-[#F5F5F3]">{(progSynth.mass.mtowKg / 1000).toFixed(1)} t</div>
               </div>
               <div>
-                <div className="text-[11px] text-[#666660] uppercase">Unit List Price</div>
-                <div className="text-lg font-semibold text-[#F5F5F3]">${progSynth.listPrice.toFixed(1)}M</div>
+                <div className="text-[11px] text-[#666660] uppercase">{isPtBr ? 'Preço de Tabela' : 'List Price'}</div>
+                <div className="text-lg font-semibold text-[#F5F5F3]">{formatCurrency(progSynth.listPrice, locale)}</div>
               </div>
             </div>
 
             {/* Program Status & Orders */}
             <div className="flex flex-col gap-3 font-mono text-xs">
               <div className="flex items-center justify-between text-[#A1A19A]">
-                <span>Backlog Orders:</span>
-                <span className="text-[#F5F5F3] font-bold">{selectedProg.ordersBacklogCount} units</span>
+                <span>{isPtBr ? 'Pedidos em Carteira:' : 'Backlog Orders:'}</span>
+                <span className="text-[#F5F5F3] font-bold">{selectedProg.ordersBacklogCount} {isPtBr ? 'unidades' : 'units'}</span>
               </div>
               <div className="flex items-center justify-between text-[#A1A19A]">
-                <span>Total Deliveries:</span>
-                <span className="text-[#F5F5F3] font-bold">{selectedProg.totalDeliveriesCount} in service</span>
+                <span>{isPtBr ? 'Entregas Realizadas:' : 'Total Deliveries:'}</span>
+                <span className="text-[#F5F5F3] font-bold">{selectedProg.totalDeliveriesCount} {isPtBr ? 'em serviço' : 'in service'}</span>
               </div>
               <div className="flex items-center justify-between text-[#A1A19A]">
-                <span>Certification Status:</span>
+                <span>{isPtBr ? 'Certificação:' : 'Certification Status:'}</span>
                 <span className={selectedProg.typeCertificateIssued ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
-                  {selectedProg.typeCertificateIssued ? 'TYPE CERTIFIED' : 'IN DEVELOPMENT'}
+                  {selectedProg.typeCertificateIssued ? (isPtBr ? 'CERTIFICADO DE TIPO EMITIDO' : 'TYPE CERTIFIED') : (isPtBr ? 'EM DESENVOLVIMENTO' : 'IN DEVELOPMENT')}
                 </span>
               </div>
             </div>
@@ -233,8 +252,8 @@ export const AircraftProgramStudio: React.FC = () => {
   // GUIDED 14-STEP AIRCRAFT CREATION WIZARD
   // ==========================================================================
   return (
-    <div className="w-full h-full flex flex-col bg-[#0D0D0D] text-[#F5F5F3] overflow-hidden select-none">
-      {/* Top Header: Step Indicator & Title */}
+    <div className="w-full h-full flex flex-col bg-[#0D0D0D] text-[#F5F5F3] overflow-hidden select-none font-sans">
+      {/* Top Header */}
       <div className="h-16 px-8 border-b border-[#242424] bg-[#141414] flex items-center justify-between">
         <div className="flex items-center gap-6">
           {company.programs.length > 0 && (
@@ -242,25 +261,25 @@ export const AircraftProgramStudio: React.FC = () => {
               onClick={() => setIsDesigningNew(false)}
               className="text-xs text-[#A1A19A] hover:text-[#F5F5F3] flex items-center gap-1 font-mono"
             >
-              <ChevronLeft className="w-4 h-4" /> Cancel
+              <ChevronLeft className="w-4 h-4" /> {t('common.cancel')}
             </button>
           )}
 
           <div>
             <div className="text-[11px] font-mono text-[#666660] uppercase tracking-wider">
-              STEP {step.toString().padStart(2, '0')} OF {TOTAL_STEPS} • {STEP_TITLES[step - 1].toUpperCase()}
+              {isPtBr ? `ETAPA ${step.toString().padStart(2, '0')} DE ${TOTAL_STEPS} • ${STEP_TITLES_KEYS[step - 1].toUpperCase()}` : `STEP ${step.toString().padStart(2, '0')} OF ${TOTAL_STEPS} • ${STEP_TITLES_KEYS[step - 1].toUpperCase()}`}
             </div>
             <div className="text-base font-semibold text-[#F5F5F3] tracking-tight">
-              {progName} — Clean-Sheet Development
+              {progName} — {isPtBr ? 'Projeto Clean-Sheet' : 'Clean-Sheet Development'}
             </div>
           </div>
         </div>
 
         {/* Step Progress Bar */}
-        <div className="flex items-center gap-2">
-          <div className="w-48 h-1.5 bg-[#242424] rounded-full overflow-hidden">
+        <div className="flex items-center gap-3">
+          <div className="w-48 h-2 bg-[#242424] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#F5F5F3] transition-all duration-200"
+              className="h-full bg-[#38bdf8] transition-all duration-200"
               style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
             />
           </div>
@@ -270,9 +289,9 @@ export const AircraftProgramStudio: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Split Body: Dominant Blueprint (~60%) + Step Decisions (~40%) */}
+      {/* Main Body */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left / Center: Dominant SVG CAD Technical Blueprint */}
+        {/* Left / Center: CAD Blueprint */}
         <div className="flex-1 h-full relative border-r border-[#242424]">
           <TechnicalBlueprint
             geometry={geom}
@@ -281,56 +300,124 @@ export const AircraftProgramStudio: React.FC = () => {
           />
         </div>
 
-        {/* Right: Step Decision Panel with Progressive Disclosure */}
-        <div className="w-[460px] bg-[#141414] flex flex-col justify-between p-8 overflow-y-auto">
-          <div className="flex flex-col gap-6">
+        {/* Right: Step Decision Panel */}
+        <div className="w-[480px] bg-[#141414] flex flex-col justify-between p-7 overflow-y-auto">
+          <div className="flex flex-col gap-5">
             {/* Step Header */}
             <div>
               <h2 className="text-xl font-semibold text-[#F5F5F3] tracking-tight">
-                {STEP_TITLES[step - 1]}
+                {STEP_TITLES_KEYS[step - 1]}
               </h2>
               <p className="text-xs text-[#A1A19A] mt-1 leading-relaxed">
-                {getStepDescription(step)}
+                {getStepDescription(step, isPtBr)}
               </p>
             </div>
 
-            {/* Level 1: Primary Decision Controls */}
-            <div className="flex flex-col gap-5">
-              {renderStepControls(step, aircraftDraft, updateAircraftDraft)}
+            {/* Design Sanity Warnings */}
+            {warnings.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {warnings.map(w => (
+                  <div
+                    key={w.id}
+                    className={`p-3 rounded-lg border text-xs flex items-start gap-2.5 ${
+                      w.type === 'critical'
+                        ? 'bg-rose-950/30 border-rose-500/40 text-rose-300'
+                        : 'bg-amber-950/30 border-amber-500/40 text-amber-300'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold font-mono">{t(w.titleKey, w.params)}</div>
+                      <div className="text-[11px] opacity-90 mt-0.5">{t(w.descKey, w.params)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Decision Controls */}
+            <div className="flex flex-col gap-4">
+              {renderStepControls(step, aircraftDraft, updateAircraftDraft, isPtBr)}
             </div>
 
-            {/* Level 2: Direct Practical Impact Summary */}
-            <div className="pt-4 border-t border-[#242424] flex flex-col gap-2">
-              <div className="text-[11px] font-mono uppercase tracking-wider text-[#666660]">
-                ESTIMATED IMPACT
+            {/* Direct Impact Deltas vs Baseline */}
+            <div className="pt-4 border-t border-[#242424] flex flex-col gap-2.5">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-[#666660] flex items-center justify-between">
+                <span>{isPtBr ? 'IMPACTO E VARIAÇÃO DO PROJETO' : 'DESIGN IMPACT & DELTAS'}</span>
+                <span className="text-[10px] text-[#73736C]">{isPtBr ? 'vs Linha Base' : 'vs Baseline'}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="flex items-center justify-between text-[#A1A19A]">
-                  <span>Design Range:</span>
-                  <span className="text-[#F5F5F3] font-bold">{Math.round(synth.perf.rangeKm).toLocaleString()} km</span>
+                <div className="p-2.5 bg-[#1B1B1B] rounded border border-[#242424] flex flex-col gap-1">
+                  <span className="text-[10px] text-[#A1A19A] uppercase">{isPtBr ? 'Alcance de Projeto' : 'Design Range'}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#F5F5F3]">{formatDistance(synth.perf.rangeKm, locale)}</span>
+                    <span className={`text-[10px] flex items-center ${deltas.deltaRangeKm >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {deltas.deltaRangeKm >= 0 ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
+                      {deltas.deltaRangeKm >= 0 ? `+${deltas.deltaRangeKm}` : deltas.deltaRangeKm} km
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-[#A1A19A]">
-                  <span>Fuel / Seat-km:</span>
-                  <span className="text-[#F5F5F3] font-bold">{synth.perf.fuelBurnKgPerSeat1000Km.toFixed(1)} kg</span>
+
+                <div className="p-2.5 bg-[#1B1B1B] rounded border border-[#242424] flex flex-col gap-1">
+                  <span className="text-[10px] text-[#A1A19A] uppercase">{isPtBr ? 'Consumo / Assento' : 'Fuel / Seat-km'}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#F5F5F3]">{synth.perf.fuelBurnKgPerSeat1000Km.toFixed(1)} L</span>
+                    <span className={`text-[10px] flex items-center ${deltas.deltaFuelBurnPercent <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {deltas.deltaFuelBurnPercent <= 0 ? <TrendingDown className="w-3 h-3 mr-0.5" /> : <TrendingUp className="w-3 h-3 mr-0.5" />}
+                      {deltas.deltaFuelBurnPercent > 0 ? `+${deltas.deltaFuelBurnPercent}` : deltas.deltaFuelBurnPercent}%
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-[#A1A19A]">
-                  <span>MTOW:</span>
-                  <span className="text-[#F5F5F3] font-bold">{(synth.mass.mtowKg / 1000).toFixed(1)} t</span>
+
+                <div className="p-2.5 bg-[#1B1B1B] rounded border border-[#242424] flex flex-col gap-1">
+                  <span className="text-[10px] text-[#A1A19A] uppercase">MTOW</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#F5F5F3]">{(synth.mass.mtowKg / 1000).toFixed(1)} t</span>
+                    <span className="text-[10px] text-[#A1A19A]">
+                      {deltas.deltaMtowKg >= 0 ? `+${(deltas.deltaMtowKg / 1000).toFixed(1)}` : (deltas.deltaMtowKg / 1000).toFixed(1)} t
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-[#A1A19A]">
-                  <span>Takeoff Field:</span>
-                  <span className="text-[#F5F5F3] font-bold">{Math.round(synth.perf.takeoffFieldLengthMeters)} m</span>
+
+                <div className="p-2.5 bg-[#1B1B1B] rounded border border-[#242424] flex flex-col gap-1">
+                  <span className="text-[10px] text-[#A1A19A] uppercase">{isPtBr ? 'Pista Decolagem' : 'Takeoff Field'}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#F5F5F3]">{Math.round(synth.perf.takeoffFieldLengthMeters)} m</span>
+                    <span className={`text-[10px] ${deltas.deltaToflMeters <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {deltas.deltaToflMeters >= 0 ? `+${deltas.deltaToflMeters}` : deltas.deltaToflMeters} m
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Level 3: Collapsible Technical Engineering Details */}
+            {/* "Why?" Educational Drawer */}
+            <div className="border border-[#242424] rounded-md bg-[#1B1B1B] overflow-hidden">
+              <button
+                onClick={() => setShowWhyReasoning(!showWhyReasoning)}
+                className="w-full px-4 py-2.5 flex items-center justify-between text-xs text-[#38bdf8] hover:text-[#7dd3fc] transition-colors"
+              >
+                <span className="font-mono uppercase text-[11px] flex items-center gap-1.5 font-bold">
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  {isPtBr ? 'Por que essa escolha importa?' : 'Why does this trade-off matter?'}
+                </span>
+                {showWhyReasoning ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {showWhyReasoning && (
+                <div className="p-4 border-t border-[#242424] text-xs text-[#A1A19A] leading-relaxed bg-[#141414]">
+                  {getStepWhyReasoning(step, isPtBr)}
+                </div>
+              )}
+            </div>
+
+            {/* Technical Engineering Telemetry Drawer */}
             <div className="border border-[#242424] rounded-md bg-[#1B1B1B] overflow-hidden">
               <button
                 onClick={() => setShowTechDetails(!showTechDetails)}
                 className="w-full px-4 py-2.5 flex items-center justify-between text-xs text-[#A1A19A] hover:text-[#F5F5F3] transition-colors"
               >
-                <span className="font-mono uppercase text-[11px]">Technical Engineering Details</span>
+                <span className="font-mono uppercase text-[11px]">{isPtBr ? 'Detalhes Técnicos de Engenharia' : 'Technical Engineering Details'}</span>
                 {showTechDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
 
@@ -366,24 +453,24 @@ export const AircraftProgramStudio: React.FC = () => {
             <button
               onClick={handlePrevStep}
               disabled={step === 1}
-              className="btn-aerospace secondary h-11 px-5 flex items-center gap-2"
+              className="btn-aerospace secondary h-11 px-5 flex items-center gap-2 text-xs font-semibold"
             >
-              <ChevronLeft className="w-4 h-4" /> Back
+              <ChevronLeft className="w-4 h-4" /> {t('common.back')}
             </button>
 
             {step < TOTAL_STEPS ? (
               <button
                 onClick={handleNextStep}
-                className="btn-aerospace primary h-11 px-6 flex items-center gap-2"
+                className="btn-aerospace primary h-11 px-6 flex items-center gap-2 text-xs font-semibold"
               >
-                Continue <ChevronRight className="w-4 h-4" />
+                {t('common.continue')} <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
               <button
                 onClick={handleLaunchProgram}
-                className="btn-aerospace primary h-11 px-6 flex items-center gap-2 font-bold"
+                className="btn-aerospace primary h-11 px-6 flex items-center gap-2 font-bold text-xs shadow-lg"
               >
-                <Rocket className="w-4 h-4" /> Launch Program
+                <Rocket className="w-4 h-4" /> {isPtBr ? 'Lançar Programa' : 'Launch Program'}
               </button>
             )}
           </div>
@@ -394,10 +481,30 @@ export const AircraftProgramStudio: React.FC = () => {
 };
 
 // ============================================================================
-// STEP DESCRIPTIONS & CONTROLS HELPER
+// HELPER FUNCTIONS
 // ============================================================================
 
-function getStepDescription(step: number): string {
+function getStepDescription(step: number, isPtBr: boolean): string {
+  if (isPtBr) {
+    switch (step) {
+      case 1: return 'Selecione o segmento comercial alvo e atribua a designação oficial do programa.';
+      case 2: return 'Defina o diâmetro da fuselagem e a disposição de assentos por fileira.';
+      case 3: return 'Configure o comprimento da cabine, distância entre poltronas e capacidade de passageiros.';
+      case 4: return 'Dimensione a área de sustentação e a envergadura das asas.';
+      case 5: return 'Ajuste o ângulo de enflechamento para a velocidade Mach de cruzeiro desejada.';
+      case 6: return 'Selecione dispositivos de ponta de asa (winglets) para reduzir o arrasto induzido.';
+      case 7: return 'Escolha os materiais estruturais para a fuselagem e caixas de asa.';
+      case 8: return 'Selecione turbofans de alta eficiência e o empuxo unitário.';
+      case 9: return 'Configure as leis de controle de voo Fly-By-Wire e proteção de envelope.';
+      case 10: return 'Equipe os aviônicos do cockpit, telas panorâmicas e pouso automático CAT III.';
+      case 11: return 'Defina a altitude de pressurização da cabine e redundância hidráulica.';
+      case 12: return 'Ajuste o conforto dos passageiros, isolamento acústico e conectividade.';
+      case 13: return 'Revise os desempenhos aerodinâmicos, custos operacionais e preço de tabela.';
+      case 14: return 'Conclua a autorização de engenharia e oficialize o lançamento do programa de P&D.';
+      default: return '';
+    }
+  }
+
   switch (step) {
     case 1: return 'Select target commercial market category and assign official program designation.';
     case 2: return 'Define fuselage cross-section diameter and seating abreast arrangement.';
@@ -417,43 +524,69 @@ function getStepDescription(step: number): string {
   }
 }
 
+function getStepWhyReasoning(step: number, isPtBr: boolean): string {
+  if (isPtBr) {
+    switch (step) {
+      case 2:
+      case 3: return 'O diâmetro e comprimento determinam o espaço interno dos passageiros e a capacidade de carga no porão, porém afetam o arrasto de fricção.';
+      case 4: return 'Asas com maior envergadura diminuem o arrasto induzido durante o cruzeiro, mas exigem reforços estruturais mais pesados e maior espaço nos gates dos aeroportos.';
+      case 5: return 'O enflechamento atrasa a compressibilidade transônica, permitindo velocidades até Mach 0,82–0,85, mas reduz o coeficiente de sustentação em baixas velocidades.';
+      case 6: return 'Winglets dissipam os vórtices de ponta de asa, proporcionando economia de 4% a 6% de combustível em voos médios/longos com baixo ganho de peso.';
+      case 7: return 'Compósitos avançados de carbono reduzem o peso estrutural e eliminam corrosão, porém exigem maior investimento em ferramental e autoclaves.';
+      case 8: return 'Turbofans modernos de alta razão de diluição (BPR) diminuem o consumo específico de combustível e ruído, mas possuem diâmetro maior e maior arrasto de nacele.';
+      case 9: return 'Comandos Fly-By-Wire digitais oferecem proteção ativa de envelope, dispensam cabos de aço pesados e aliviam cargas estruturais durante rajadas de vento.';
+      default: return 'Cada decisão equilibra desempenho operacional, custos de desenvolvimento em P&D e atratividade comercial para as companhias aéreas.';
+    }
+  }
+
+  switch (step) {
+    case 4: return 'A higher aspect ratio wing reduces induced vortex drag during cruise, boosting range and fuel economy, but increases wing bending moments and empty weight.';
+    case 5: return 'Wing sweep delays transonic compressibility drag, allowing higher cruise Mach numbers (0.78–0.85), but reduces low-speed maximum lift coefficient.';
+    case 6: return 'Wingtip devices diffuse the tip vortex, delivering up to 4–6% fuel burn reductions on long stages with minimal structural weight additions.';
+    case 7: return 'Advanced carbon composites significantly reduce airframe empty weight and eliminate corrosion, at the expense of higher tooling capital and non-destructive testing requirements.';
+    case 8: return 'Modern high-bypass turbofans lower specific fuel consumption (SFC) and acoustic emissions, but feature larger nacelle drag and higher dry engine mass.';
+    case 9: return 'Full Fly-By-Wire provides autonomous flight envelope protection, eliminates heavy control cables, and enables load alleviation during gust encounters.';
+    default: return 'Every engineering parameter balances operational fuel burn, unit manufacturing cost, and airline market appeal.';
+  }
+}
+
 function renderStepControls(
   step: number,
   draft: AircraftDraft,
-  update: (updates: Partial<AircraftDraft>) => void
+  update: (updates: Partial<AircraftDraft>) => void,
+  isPtBr: boolean
 ) {
   const { geometry: geom, propulsion: prop, systems: sys } = draft;
   const synth = synthesizeAircraftSpecs(geom, prop, sys, draft.marketSegment);
 
   switch (step) {
-    // STEP 1: MISSION & MARKET CATEGORY
     case 1:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Program Designation
+              {isPtBr ? 'Designação do Modelo' : 'Program Designation'}
             </label>
             <input
               type="text"
               value={draft.name}
               onChange={e => update({ name: e.target.value })}
               className="w-full font-semibold"
-              placeholder="e.g. A120"
+              placeholder="ex: A120"
             />
           </div>
 
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Target Aircraft Category
+              {isPtBr ? 'Categoria de Mercado' : 'Target Aircraft Category'}
             </label>
             <div className="grid grid-cols-1 gap-2">
               {[
-                { id: 'regional_jet', name: 'Regional Jet', desc: '70–100 seats, short-haul feeder routes' },
-                { id: 'small_narrowbody', name: 'Small Narrowbody', desc: '110–145 seats, high-frequency regional' },
-                { id: 'narrowbody', name: 'Standard Narrowbody', desc: '150–190 seats, mainline workhorse' },
-                { id: 'large_narrowbody', name: 'Large Narrowbody', desc: '190–240 seats, high-density & transcon' },
-                { id: 'widebody', name: 'Twin-Aisle Widebody', desc: '250–350 seats, long-range international' }
+                { id: 'regional_jet', name: isPtBr ? 'Jato Regional' : 'Regional Jet', desc: isPtBr ? '70–100 assentos, rotas alimentadoras' : '70–100 seats, short-haul feeder routes' },
+                { id: 'small_narrowbody', name: isPtBr ? 'Small Narrowbody' : 'Small Narrowbody', desc: isPtBr ? '110–145 assentos, alta frequência regional' : '110–145 seats, high-frequency regional' },
+                { id: 'narrowbody', name: isPtBr ? 'Narrowbody Padrão' : 'Standard Narrowbody', desc: isPtBr ? '150–190 assentos, espinha dorsal da aviação comercial' : '150–190 seats, mainline workhorse' },
+                { id: 'large_narrowbody', name: isPtBr ? 'Large Narrowbody' : 'Large Narrowbody', desc: isPtBr ? '190–240 assentos, alta densidade e transcontinental' : '190–240 seats, high-density & transcon' },
+                { id: 'widebody', name: isPtBr ? 'Widebody Dois Corredores' : 'Twin-Aisle Widebody', desc: isPtBr ? '250–350 assentos, longo curso internacional' : '250–350 seats, long-range international' }
               ].map(cat => (
                 <button
                   key={cat.id}
@@ -473,13 +606,12 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 2: CABIN CROSS-SECTION
     case 2:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Fuselage Diameter ({geom.fuselageDiameter.toFixed(2)} m)
+              {isPtBr ? `Diâmetro da Fuselagem (${geom.fuselageDiameter.toFixed(2)} m)` : `Fuselage Diameter (${geom.fuselageDiameter.toFixed(2)} m)`}
             </label>
             <input
               type="range"
@@ -494,7 +626,7 @@ function renderStepControls(
 
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Seating Abreast Configuration
+              {isPtBr ? 'Disposição de Assentos por Fileira' : 'Seating Abreast Configuration'}
             </label>
             <div className="grid grid-cols-4 gap-2">
               {[4, 5, 6, 8].map(count => (
@@ -515,13 +647,12 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 3: FUSELAGE LENGTH & CAPACITY
     case 3:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Fuselage Length ({geom.length.toFixed(1)} m)
+              {isPtBr ? `Comprimento da Fuselagem (${geom.length.toFixed(1)} m)` : `Fuselage Length (${geom.length.toFixed(1)} m)`}
             </label>
             <input
               type="range"
@@ -539,19 +670,18 @@ function renderStepControls(
           </div>
 
           <div className="p-4 bg-[#1B1B1B] rounded-md border border-[#242424] font-mono text-xs flex justify-between">
-            <span className="text-[#A1A19A]">Typical Seating Capacity:</span>
-            <span className="text-[#F5F5F3] font-bold">{geom.typicalSeats} Passengers</span>
+            <span className="text-[#A1A19A]">{isPtBr ? 'Capacidade Típica de Assentos:' : 'Typical Seating Capacity:'}</span>
+            <span className="text-[#F5F5F3] font-bold">{geom.typicalSeats} {isPtBr ? 'Passageiros' : 'Passengers'}</span>
           </div>
         </div>
       );
 
-    // STEP 4: WING PLANFORM & SPAN
     case 4:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Wingspan ({geom.wingSpan.toFixed(1)} m)
+              {isPtBr ? `Envergadura da Asa (${geom.wingSpan.toFixed(1)} m)` : `Wingspan (${geom.wingSpan.toFixed(1)} m)`}
             </label>
             <input
               type="range"
@@ -566,7 +696,7 @@ function renderStepControls(
 
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Wing Reference Area ({geom.wingArea.toFixed(1)} m²)
+              {isPtBr ? `Área Alar de Referência (${geom.wingArea.toFixed(1)} m²)` : `Wing Reference Area (${geom.wingArea.toFixed(1)} m²)`}
             </label>
             <input
               type="range"
@@ -581,13 +711,12 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 5: WING SWEEP
     case 5:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Leading Edge Sweep ({geom.wingSweepDegrees.toFixed(1)}°)
+              {isPtBr ? `Enflechamento da Asa (${geom.wingSweepDegrees.toFixed(1)}°)` : `Leading Edge Sweep (${geom.wingSweepDegrees.toFixed(1)}°)`}
             </label>
             <input
               type="range"
@@ -599,21 +728,17 @@ function renderStepControls(
               className="w-full"
             />
           </div>
-          <div className="text-xs text-[#A1A19A] leading-relaxed">
-            Higher sweep angles delay transonic shockwave onset, enabling cruise speeds up to Mach 0.82–0.85, but require reinforced wing roots.
-          </div>
         </div>
       );
 
-    // STEP 6: WINGTIP DEVICES
     case 6:
       return (
         <div className="flex flex-col gap-2">
           {[
-            { id: 'none', name: 'Conventional Clean Tip', desc: 'Simplest structure, baseline drag' },
-            { id: 'blended', name: 'Blended Winglet', desc: '+3.2% Fuel efficiency, low weight' },
-            { id: 'split_scimitar', name: 'Split-Scimitar Winglet', desc: '+4.5% Fuel efficiency, dual aerofoil' },
-            { id: 'raked_wingtip', name: 'Raked Wingtip', desc: '+5.0% Long-range efficiency, extended span' }
+            { id: 'none', name: isPtBr ? 'Ponta de Asa Limpa Convencional' : 'Conventional Clean Tip', desc: isPtBr ? 'Estrutura simples, arrasto de referência' : 'Simplest structure, baseline drag' },
+            { id: 'blended', name: isPtBr ? 'Blended Winglet Curvado' : 'Blended Winglet', desc: isPtBr ? '+3,2% de eficiência em cruzeiro' : '+3.2% Fuel efficiency, low weight' },
+            { id: 'split_scimitar', name: isPtBr ? 'Split-Scimitar Winglet Duplo' : 'Split-Scimitar Winglet', desc: isPtBr ? '+4,5% de eficiência aerodinâmica' : '+4.5% Fuel efficiency, dual aerofoil' },
+            { id: 'raked_wingtip', name: isPtBr ? 'Ponta de Asa Enflechada (Raked)' : 'Raked Wingtip', desc: isPtBr ? '+5,0% de eficiência em longo alcance' : '+5.0% Long-range efficiency, extended span' }
           ].map(tip => (
             <button
               key={tip.id}
@@ -631,14 +756,13 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 7: STRUCTURAL MATERIALS
     case 7:
       return (
         <div className="flex flex-col gap-2">
           {[
-            { id: 'conventional_aluminum', name: 'Standard Aerospace Aluminum (2024/7075)', desc: 'Lowest unit cost, mature tooling, baseline weight' },
-            { id: 'advanced_al_li', name: 'Advanced Aluminum-Lithium Alloys', desc: '-7% Airframe mass, superior corrosion resistance' },
-            { id: 'full_carbon_composite', name: 'Full Carbon Fiber Composites (CFRP)', desc: '-18% Airframe mass, higher fatigue life, increased tooling R&D' }
+            { id: 'conventional_aluminum', name: isPtBr ? 'Alumínio Aeroespacial Convencional' : 'Standard Aerospace Aluminum', desc: isPtBr ? 'Menor custo de ferramental, peso de referência' : 'Lowest unit cost, mature tooling, baseline weight' },
+            { id: 'advanced_al_li', name: isPtBr ? 'Ligas Avançadas de Alumínio-Lítio (Al-Li)' : 'Advanced Aluminum-Lithium Alloys', desc: isPtBr ? '-7% de peso estrutural, alta resistência a corrosão' : '-7% Airframe mass, superior corrosion resistance' },
+            { id: 'full_carbon_composite', name: isPtBr ? 'Compósitos de Fibra de Carbono (CFRP)' : 'Full Carbon Fiber Composites (CFRP)', desc: isPtBr ? '-18% de peso estrutural, alta vida em fadiga' : '-18% Airframe mass, higher fatigue life, increased tooling R&D' }
           ].map(mat => (
             <button
               key={mat.id}
@@ -656,7 +780,6 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 8: PROPULSION INTEGRATION
     case 8:
       return (
         <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
@@ -675,21 +798,20 @@ function renderStepControls(
                 <span className="text-xs font-mono text-[#38bdf8]">{eng.thrustPerEngineKN} kN</span>
               </div>
               <div className="text-xs text-[#666660] mt-0.5 font-mono">
-                BPR {eng.bypassRatio}:1 • SFC {eng.cruiseSFC} • ${eng.pricePerEngine}M/ea
+                BPR {eng.bypassRatio}:1 • SFC {eng.cruiseSFC} • US$ {eng.pricePerEngine}M/un
               </div>
             </button>
           ))}
         </div>
       );
 
-    // STEP 9: FLIGHT CONTROLS & FBW
     case 9:
       return (
         <div className="flex flex-col gap-2">
           {[
-            { id: 'analog_fbw', name: 'Analog Electronic Flight Controls', desc: 'Basic stability augmentation, mechanical backup cables' },
-            { id: 'digital_fbw', name: 'Full Digital Fly-By-Wire (FBW)', desc: 'Flight envelope protection, sidestick controls, -350 kg mass' },
-            { id: 'adaptive_envelope_fbw', name: 'Adaptive Autonomous FBW', desc: 'Predictive gust alleviation, maximum passenger ride smoothness' }
+            { id: 'analog_fbw', name: isPtBr ? 'Comandos Analógicos com Cabos de Backup' : 'Analog Electronic Flight Controls', desc: isPtBr ? 'Estabilidade básica aumentada, peso mecânico tradicional' : 'Basic stability augmentation, mechanical backup cables' },
+            { id: 'digital_fbw', name: isPtBr ? 'Fly-By-Wire Digital Completo' : 'Full Digital Fly-By-Wire (FBW)', desc: isPtBr ? 'Proteção de envelope de voo, sidestick, -350 kg de peso' : 'Flight envelope protection, sidestick controls, -350 kg mass' },
+            { id: 'adaptive_envelope_fbw', name: isPtBr ? 'FBW Adaptativo Autônomo com Alívio de Rajadas' : 'Adaptive Autonomous FBW', desc: isPtBr ? 'Alívio ativo de cargas em turbulência e conforto máximo' : 'Predictive gust alleviation, maximum passenger ride smoothness' }
           ].map(fc => (
             <button
               key={fc.id}
@@ -707,13 +829,12 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 10: COCKPIT & AVIONICS
     case 10:
       return (
         <div className="flex flex-col gap-2">
           {[
-            { id: 'modern_lcd_efis', name: 'Modern Multi-Function LCD EFIS', desc: 'Standard airline standard glass cockpit with synthetic vision' },
-            { id: 'panoramic_touch_screens', name: 'Panoramic Large-Format Touch Cockpit', desc: 'Next-gen dual HUDs, paperless electronic flight bag, pilot workload reduction' }
+            { id: 'modern_lcd_efis', name: isPtBr ? 'Cockpit EFIS com Telas LCD Multifuncionais' : 'Modern Multi-Function LCD EFIS', desc: isPtBr ? 'Padrão da indústria com visão sintética integrada' : 'Standard airline standard glass cockpit with synthetic vision' },
+            { id: 'panoramic_touch_screens', name: isPtBr ? 'Telas Panorâmicas Touch de Grande Formato' : 'Panoramic Large-Format Touch Cockpit', desc: isPtBr ? 'Dual HUDs, redução da carga de trabalho dos pilotos' : 'Next-gen dual HUDs, paperless electronic flight bag, pilot workload reduction' }
           ].map(cockpit => (
             <button
               key={cockpit.id}
@@ -731,13 +852,12 @@ function renderStepControls(
         </div>
       );
 
-    // STEP 11: SYSTEMS & PRESSURIZATION
     case 11:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Cruise Cabin Altitude ({sys.cabinAltitudeFeet} ft)
+              {isPtBr ? `Altitude de Pressurização em Cruzeiro (${sys.cabinAltitudeFeet} pés)` : `Cruise Cabin Altitude (${sys.cabinAltitudeFeet} ft)`}
             </label>
             <input
               type="range"
@@ -749,19 +869,15 @@ function renderStepControls(
               className="w-full"
             />
           </div>
-          <div className="text-xs text-[#A1A19A] leading-relaxed">
-            Lower cabin altitude (6,000 ft vs 8,000 ft) significantly reduces passenger travel fatigue, but requires increased fuselage pressure vessel strength.
-          </div>
         </div>
       );
 
-    // STEP 12: PASSENGER EXPERIENCE
     case 12:
       return (
         <div className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-mono text-[#A1A19A] uppercase block mb-1.5">
-              Economy Seat Pitch ({geom.seatPitchInches} inches)
+              {isPtBr ? `Distância Entre Poltronas (${geom.seatPitchInches} polegadas)` : `Economy Seat Pitch (${geom.seatPitchInches} inches)`}
             </label>
             <input
               type="range"
@@ -773,57 +889,34 @@ function renderStepControls(
               className="w-full"
             />
           </div>
-
-          <div className="p-4 bg-[#1B1B1B] rounded-md border border-[#242424] font-mono text-xs flex justify-between">
-            <span className="text-[#A1A19A]">Passenger Comfort Index:</span>
-            <span className="text-[#F5F5F3] font-bold">{synth.perf.passengerComfortScore} / 100</span>
-          </div>
         </div>
       );
 
-    // STEP 13: PERFORMANCE TRADE-OFFS
     case 13:
       return (
         <div className="flex flex-col gap-3 font-mono text-xs">
           <div className="p-3 bg-[#1B1B1B] rounded border border-[#242424] flex justify-between">
-            <span className="text-[#A1A19A]">Direct Operating Cost (DOC):</span>
-            <span className="text-[#F5F5F3] font-bold">${synth.perf.directOperatingCostPerSeatKm.toFixed(4)} / seat-km</span>
+            <span className="text-[#A1A19A]">{isPtBr ? 'Custo Operacional Direto (DOC):' : 'Direct Operating Cost (DOC):'}</span>
+            <span className="text-[#F5F5F3] font-bold">US$ {synth.perf.directOperatingCostPerSeatKm.toFixed(4)} / assento-km</span>
           </div>
           <div className="p-3 bg-[#1B1B1B] rounded border border-[#242424] flex justify-between">
-            <span className="text-[#A1A19A]">Estimated Unit Manufacturing Cost:</span>
-            <span className="text-[#F5F5F3] font-bold">${synth.unitCost.toFixed(1)}M USD</span>
+            <span className="text-[#A1A19A]">{isPtBr ? 'Custo Unitário de Fabricação:' : 'Estimated Unit Manufacturing Cost:'}</span>
+            <span className="text-[#F5F5F3] font-bold">US$ {synth.unitCost.toFixed(1)}M</span>
           </div>
           <div className="p-3 bg-[#1B1B1B] rounded border border-[#242424] flex justify-between">
-            <span className="text-[#A1A19A]">Suggested List Price:</span>
-            <span className="text-[#F5F5F3] font-bold">${synth.listPrice.toFixed(1)}M USD</span>
+            <span className="text-[#A1A19A]">{isPtBr ? 'Preço Sugerido de Tabela:' : 'Suggested List Price:'}</span>
+            <span className="text-[#F5F5F3] font-bold">US$ {synth.listPrice.toFixed(1)}M</span>
           </div>
         </div>
       );
 
-    // STEP 14: FINAL PROGRAM REVIEW
     case 14:
       return (
         <div className="flex flex-col gap-4 font-mono text-xs">
-          <div className="p-4 bg-[#1B1B1B] rounded-md border border-[#242424] flex flex-col gap-2">
-            <div className="text-[#666660] uppercase text-[11px]">Engineering Strengths</div>
-            <div className="text-[#34d399] flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5" /> High cruise aerodynamic efficiency (L/D {synth.perf.liftToDragRatioCruise.toFixed(1)})
-            </div>
-            <div className="text-[#34d399] flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5" /> Favorable runway compatibility ({Math.round(synth.perf.takeoffFieldLengthMeters)} m TOFL)
-            </div>
-          </div>
-
-          <div className="p-4 bg-[#1B1B1B] rounded-md border border-[#242424] flex flex-col gap-2">
-            <div className="text-[#666660] uppercase text-[11px]">Program Investment</div>
-            <div className="flex justify-between text-[#A1A19A]">
-              <span>R&D Capital Required:</span>
-              <span className="text-[#F5F5F3] font-bold">${synth.rdCost.toFixed(1)}M</span>
-            </div>
-            <div className="flex justify-between text-[#A1A19A]">
-              <span>Estimated EIS Timeline:</span>
-              <span className="text-[#F5F5F3] font-bold">48 Months</span>
-            </div>
+          <div className="p-4 bg-[#1B1B1B] rounded border border-[#38bdf8]/40 flex flex-col gap-2">
+            <div className="text-[#38bdf8] font-bold text-sm">{isPtBr ? 'Resumo da Aprovação de Engenharia' : 'Engineering Rollout Summary'}</div>
+            <div className="text-[#A1A19A]">{isPtBr ? 'Orçamento de P&D Estimado:' : 'Estimated Development Budget:'} <span className="text-[#F5F5F3] font-bold">US$ {synth.rdCost}M</span></div>
+            <div className="text-[#A1A19A]">{isPtBr ? 'Cronograma Estimado até o Primeiro Voo:' : 'Projected Schedule to First Flight:'} <span className="text-[#F5F5F3] font-bold">~36 {isPtBr ? 'meses' : 'months'}</span></div>
           </div>
         </div>
       );

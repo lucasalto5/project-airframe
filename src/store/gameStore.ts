@@ -16,15 +16,18 @@ import type {
   CompanyPhilosophy,
   ContractProposal,
   Facility,
-  Department
+  Department,
+  ProgramPhase,
+  ActiveTestMission
 } from '../types';
 import { SeededRNG } from '../simulation/rng';
 import { executeDailySimulationTick } from '../simulation/engine';
 import { INITIAL_COMPETITORS } from '../data/competitors';
 import { INITIAL_AIRLINES } from '../data/airlines';
 import { INITIAL_SUPPLIERS } from '../data/suppliers';
+import { TEST_SCENARIOS } from '../data/testCampaigns';
 import { synthesizeAircraftSpecs } from '../simulation/formulas';
-import { evaluateRfpDecision, generatePotentialAirlineRFP } from '../simulation/rfpEngine';
+import { generatePotentialAirlineRFP } from '../simulation/rfpEngine';
 import { checkForInServiceIncident } from '../simulation/incidentEngine';
 import { storageManager, CURRENT_SCHEMA_VERSION } from '../storage/db';
 import type { FullGameState } from '../storage/db';
@@ -100,7 +103,6 @@ export const DEFAULT_AIRCRAFT_DRAFT: AircraftDraft = {
   }
 };
 
-
 export interface GameStoreState {
   isInitialized: boolean;
   gameSpeed: GameSpeed;
@@ -137,6 +139,7 @@ export interface GameStoreState {
   createAircraftProgram: (programData: Partial<AircraftProgram>) => void;
   updateProgramDesign: (programId: string, updates: Partial<AircraftProgram>) => void;
   constructPrototype: (programId: string, role: 'aerodynamics_envelope' | 'systems_avionics' | 'extreme_weather_hot_high' | 'cabin_evac_function') => void;
+  scheduleFlightTest: (programId: string, scenarioId: string, prototypeId: string) => boolean;
   resolveCertificationFinding: (programId: string, findingId: string, optionIndex: number) => void;
   
   // Production & Lines
@@ -145,7 +148,6 @@ export interface GameStoreState {
   
   // Commercial Sales & Contracts
   submitRfpProposal: (rfpId: string, proposal: ContractProposal) => void;
-  evaluateRfp: (rfpId: string) => void;
   
   // Company & Staffing
   updateDepartmentHeadcount: (deptId: string, delta: number) => void;
@@ -161,10 +163,12 @@ export interface GameStoreState {
   // Developer Cheats
   devAdvanceDays: (days: number) => void;
   devAddCash: (amountMUSD: number) => void;
+  devSetPhase: (programId: string, phase: ProgramPhase) => void;
+  devAddFlightHours: (programId: string, hours: number) => void;
+  devPassCertification: (programId: string) => void;
   devForceRfp: () => void;
   devForceIncident: () => void;
 }
-
 
 const DEFAULT_DEPARTMENTS: Department[] = [
   { id: 'dept_aero', name: 'Aerodynamics & CFD', category: 'engineering', headcount: 45, targetHeadcount: 50, averageExperience: 7.2, morale: 88, baseSalary: 8500, overtimeAllowed: false, productivity: 1.05, accumulatedKnowledge: 65 },
@@ -181,6 +185,32 @@ const DEFAULT_DEPARTMENTS: Department[] = [
 ];
 
 let rngInstance = new SeededRNG(20160101);
+let autosaveTimer: any = null;
+
+function triggerDebouncedAutosave(get: () => GameStoreState) {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    try {
+      const state = get();
+      if (!state.isInitialized) return;
+      const fullState: FullGameState = {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        seed: state.seed,
+        currentDate: state.currentDate,
+        gameSpeed: state.gameSpeed,
+        macroEconomy: state.macroEconomy,
+        company: state.company,
+        competitors: state.competitors,
+        airlines: state.airlines,
+        playtimeMinutes: state.playtimeMinutes,
+        savedAtTimestamp: Date.now()
+      };
+      storageManager.saveGame('active_game_slot', `${state.company.name} [Active]`, fullState, true);
+    } catch {
+      // Ignore autosave error
+    }
+  }, 1000);
+}
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   isInitialized: false,
@@ -208,14 +238,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     reputationScore: 40,
     trustLevel: 'emerging',
     financials: {
-      cash: 750.0,
+      cash: 650.0,
       totalDebt: 0,
       monthlyRevenue: 0,
-      monthlyExpenses: 8.5,
-      monthlyBurnRate: 8.5,
-      valuation: 1200.0,
+      monthlyExpenses: 5.5,
+      monthlyBurnRate: 5.5,
+      valuation: 1100.0,
       sharesOutstanding: 100_000_000,
       isPubliclyTraded: false,
+      insolvencyStatus: 'solvent',
+      emergencyFundingUsed: false,
       quarterlyHistory: []
     },
     investors: [
@@ -240,7 +272,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         category: 'commercial',
         headline: `Aureon Aerospace Founded to Pioneer Modern Commercial Aircraft`,
         source: 'Aviation Week Global Daily',
-        summary: `Aureon Aerospace has officially incorporated with $750M in initial capital, setting sights on designing next-generation fuel-efficient passenger airliners.`
+        summary: `Aureon Aerospace has officially incorporated with $650M in initial capital, setting sights on designing next-generation fuel-efficient passenger airliners.`
       }
     ],
     milestonesUnlocked: [
@@ -267,13 +299,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   autoHydrate: async () => {
     try {
-      // 1. Restore Aircraft Draft if available
       const savedDraft = storageManager.loadAircraftDraft() as AircraftDraft | null;
       if (savedDraft) {
         set({ aircraftDraft: savedDraft });
       }
 
-      // 2. Restore active game state
       const activeSaveId = storageManager.getActiveSaveId() || 'active_game_slot';
       const loaded = await storageManager.loadGame(activeSaveId);
       if (loaded) {
@@ -282,7 +312,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         const lastProgId = localStorage.getItem('airframe_selected_program') || undefined;
         set({
           isInitialized: true,
-          gameSpeed: 0, // Paused on restore
+          gameSpeed: 0,
           seed: loaded.seed,
           currentDate: loaded.currentDate,
           macroEconomy: loaded.macroEconomy,
@@ -332,8 +362,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   initNewGame: (options: NewGameOptions) => {
     rngInstance = new SeededRNG(options.seed);
 
-    let initialCash = 250.0;
-    if (options.fundingType === 'bootstrapped') initialCash = 120.0;
+    let initialCash = 650.0;
+    if (options.fundingType === 'bootstrapped') initialCash = 180.0;
     else if (options.fundingType === 'private_equity') initialCash = 650.0;
     else if (options.fundingType === 'venture_capital') initialCash = 950.0;
     else if (options.fundingType === 'industrial_group') initialCash = 1200.0;
@@ -356,11 +386,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         cash: initialCash,
         totalDebt: 0,
         monthlyRevenue: 0,
-        monthlyExpenses: 6.8,
-        monthlyBurnRate: 6.8,
+        monthlyExpenses: 5.5,
+        monthlyBurnRate: 5.5,
         valuation: initialCash * 1.6,
         sharesOutstanding: 100_000_000,
         isPubliclyTraded: false,
+        insolvencyStatus: 'solvent',
+        emergencyFundingUsed: false,
         quarterlyHistory: []
       },
       investors: [
@@ -436,21 +468,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       lastSavedTime: 'Just now'
     });
 
-    // Immediately persist initial state to default active slot
-    const fullState: FullGameState = {
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      seed: options.seed,
-      currentDate: startDate,
-      gameSpeed: 1,
-      macroEconomy: initialEconomy,
-      company: initialCompany,
-      competitors: INITIAL_COMPETITORS,
-      airlines: INITIAL_AIRLINES,
-      playtimeMinutes: 0,
-      savedAtTimestamp: Date.now()
-    };
-    storageManager.setActiveSaveId('active_game_slot');
-    storageManager.saveGame('active_game_slot', `${options.companyName} [Active]`, fullState, false);
+    triggerDebouncedAutosave(get);
     localStorage.setItem('airframe_active_view', 'dashboard');
   },
 
@@ -465,7 +483,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ selectedProgramId: id });
   },
   setSelectedRfpId: (id) => set({ selectedRfpId: id }),
-
 
   tickGame: () => {
     const { company, macroEconomy, currentDate, competitors, airlines } = get();
@@ -488,17 +505,51 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const sys = programData.systems!;
     const synth = synthesizeAircraftSpecs(geom, prop, sys, segment);
 
+    // Realistic milestone projections
+    const projectedFirstFlight: GameDate = {
+      day: currentDate.day,
+      month: ((currentDate.month + 10 - 1) % 12) + 1,
+      year: currentDate.year + 3,
+      quarter: (Math.floor(((currentDate.month + 10 - 1) % 12) / 3) + 1) as 1 | 2 | 3 | 4,
+      totalDays: currentDate.totalDays + 1100
+    };
+
+    const projectedCert: GameDate = {
+      day: currentDate.day,
+      month: ((currentDate.month + 4 - 1) % 12) + 1,
+      year: currentDate.year + 5,
+      quarter: (Math.floor(((currentDate.month + 4 - 1) % 12) / 3) + 1) as 1 | 2 | 3 | 4,
+      totalDays: currentDate.totalDays + 1650
+    };
+
+    const projectedEis: GameDate = {
+      day: currentDate.day,
+      month: ((currentDate.month + 8 - 1) % 12) + 1,
+      year: currentDate.year + 5,
+      quarter: (Math.floor(((currentDate.month + 8 - 1) % 12) / 3) + 1) as 1 | 2 | 3 | 4,
+      totalDays: currentDate.totalDays + 1800
+    };
+
     const newProg: AircraftProgram = {
       id: programData.id || `prog_${Date.now()}`,
-      name: programData.name || 'A100',
+      name: programData.name || 'A120',
       familyId: programData.familyId || `fam_${Date.now()}`,
       isCleanSheet: true,
       marketSegment: segment,
       targetAirlinesCategory: ['legacy', 'low_cost', 'regional'],
       createdAt: { ...currentDate },
-      eisTargetDate: { ...currentDate, year: currentDate.year + 4 },
+      eisTargetDate: projectedEis,
       currentPhase: 'concept',
       phaseProgressPercent: 0,
+      phaseElapsedDays: 0,
+      phaseEstimatedDurationDays: 150,
+      scheduleMilestones: {
+        launchDate: { ...currentDate },
+        projectedFirstFlight,
+        projectedCertification: projectedCert,
+        projectedEis,
+        delayLog: []
+      },
       geometry: geom,
       propulsion: prop,
       systems: sys,
@@ -534,9 +585,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       schedulePressure: 'balanced',
       accumulatedTechDebt: 0,
       prototypesBuilt: [],
+      activeTestMissions: [],
+      completedScenarioIds: [],
+      groundTestsCompleted: 0,
+      groundTestsTotal: 4,
       testCampaignsProgress: {
         groundTestsCompleted: 0,
-        groundTestsTotal: 6,
+        groundTestsTotal: 4,
         flightHoursLogged: 0,
         flightHoursRequired: 1800,
         flightEnvelopeExpansionPercent: 0,
@@ -574,23 +629,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       lastSavedTime: 'Just now'
     });
 
-    // Auto-save game state on major launch
-    const state = get();
-    const fullState: FullGameState = {
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      seed: state.seed,
-      currentDate: state.currentDate,
-      gameSpeed: state.gameSpeed,
-      macroEconomy: state.macroEconomy,
-      company: updatedCompany,
-      competitors: state.competitors,
-      airlines: state.airlines,
-      playtimeMinutes: state.playtimeMinutes,
-      savedAtTimestamp: Date.now()
-    };
-    storageManager.saveGame('active_game_slot', `${company.name} [Active]`, fullState, false);
+    triggerDebouncedAutosave(get);
   },
-
 
   updateProgramDesign: (programId, updates) => {
     const { company } = get();
@@ -605,13 +645,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return merged;
     });
 
-    set({
-      company: { ...company, programs: updatedPrograms }
-    });
+    set({ company: { ...company, programs: updatedPrograms } });
+    triggerDebouncedAutosave(get);
   },
 
   constructPrototype: (programId, role) => {
     const { company } = get();
+    const PROTOTYPE_COST_MUSD = 35.0;
+
+    if (company.financials.cash < PROTOTYPE_COST_MUSD) {
+      // Insufficient funds
+      return;
+    }
+
     const updatedPrograms = company.programs.map(p => {
       if (p.id !== programId) return p;
       const num = p.prototypesBuilt.length + 1;
@@ -619,7 +665,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         id: `pt_${programId}_${num}`,
         programId,
         serialNumber: `PT-00${num}`,
-        name: `${p.name} Flight Test Prototype ${num}`,
+        name: `${p.name} Flight Test Article ${num}`,
         primaryRole: role,
         status: 'under_construction' as const,
         flightHours: 0,
@@ -633,11 +679,86 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       };
     });
 
-    set({ company: { ...company, programs: updatedPrograms } });
+    const updatedFinancials = {
+      ...company.financials,
+      cash: parseFloat((company.financials.cash - PROTOTYPE_COST_MUSD).toFixed(2))
+    };
+
+    set({
+      company: {
+        ...company,
+        financials: updatedFinancials,
+        programs: updatedPrograms
+      }
+    });
+
+    triggerDebouncedAutosave(get);
   },
 
-  resolveCertificationFinding: (programId, findingId, _optionIndex) => {
+  scheduleFlightTest: (programId, scenarioId, prototypeId) => {
+    const { company, currentDate } = get();
+    const prog = company.programs.find(p => p.id === programId);
+    const scenario = TEST_SCENARIOS.find(s => s.id === scenarioId);
+    if (!prog || !scenario) return false;
+
+    const pt = prog.prototypesBuilt.find(p => p.id === prototypeId);
+    if (!pt || pt.status === 'under_construction' || pt.currentMissionId) return false;
+
+    if (company.financials.cash < scenario.costMUSD) return false;
+
+    const newMission: ActiveTestMission = {
+      id: `mission_${Date.now()}_${rngInstance.nextInt(100, 999)}`,
+      scenarioId: scenario.id,
+      prototypeId: pt.id,
+      startDate: { ...currentDate },
+      durationDays: scenario.durationDays,
+      daysElapsed: 0,
+      flightHoursExpected: scenario.flightHoursLogged,
+      envelopeGainExpected: scenario.envelopeGainPercent,
+      costMUSD: scenario.costMUSD,
+      status: 'running'
+    };
+
+    pt.currentMissionId = newMission.id;
+
+    const updatedPrograms = company.programs.map(p => {
+      if (p.id !== programId) return p;
+      return {
+        ...p,
+        activeTestMissions: [...p.activeTestMissions, newMission]
+      };
+    });
+
+    const updatedFinancials = {
+      ...company.financials,
+      cash: parseFloat((company.financials.cash - scenario.costMUSD).toFixed(2))
+    };
+
+    set({
+      company: {
+        ...company,
+        financials: updatedFinancials,
+        programs: updatedPrograms
+      }
+    });
+
+    triggerDebouncedAutosave(get);
+    return true;
+  },
+
+  resolveCertificationFinding: (programId, findingId, optionIndex) => {
     const { company } = get();
+    const prog = company.programs.find(p => p.id === programId);
+    if (!prog) return;
+
+    const finding = prog.certificationFindings.find(f => f.id === findingId);
+    if (!finding) return;
+
+    const scenario = TEST_SCENARIOS.flatMap(s => s.potentialAnomalies).find(a => a.id === findingId);
+    const option = scenario?.options[optionIndex];
+    const cost = option?.costMUSD || finding.costToFix;
+    const delay = option?.delayDays || finding.daysToFix;
+
     const updatedPrograms = company.programs.map(p => {
       if (p.id !== programId) return p;
       const updatedFindings = p.certificationFindings.map(f => {
@@ -646,97 +767,110 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         }
         return f;
       });
-      return { ...p, certificationFindings: updatedFindings };
+
+      const updatedDelayLog = [...(p.scheduleMilestones.delayLog || [])];
+      if (delay > 0) {
+        updatedDelayLog.push({
+          id: `delay_${Date.now()}`,
+          date: { ...get().currentDate },
+          reasonKey: finding.titleKey,
+          daysAdded: delay
+        });
+      }
+
+      return {
+        ...p,
+        certificationFindings: updatedFindings,
+        scheduleMilestones: {
+          ...p.scheduleMilestones,
+          delayLog: updatedDelayLog
+        },
+        testCampaignsProgress: {
+          ...p.testCampaignsProgress,
+          anomaliesResolved: p.testCampaignsProgress.anomaliesResolved + 1
+        }
+      };
     });
 
-    set({ company: { ...company, programs: updatedPrograms } });
+    const updatedFinancials = {
+      ...company.financials,
+      cash: parseFloat((company.financials.cash - cost).toFixed(2))
+    };
+
+    set({
+      company: {
+        ...company,
+        financials: updatedFinancials,
+        programs: updatedPrograms
+      }
+    });
+
+    triggerDebouncedAutosave(get);
   },
 
   createAssemblyLine: (programId, facilityId, targetRate) => {
     const { company } = get();
+    const TOOLING_COST_MUSD = 85.0;
+
+    if (company.financials.cash < TOOLING_COST_MUSD) return;
+
     const prog = company.programs.find(p => p.id === programId);
     const newLine: AssemblyLine = {
       id: `line_${Date.now()}`,
       name: `${prog?.name || 'Airframe'} Final Assembly Line 1`,
       facilityId,
       programId,
+      status: 'tooling_in_progress',
+      toolingDaysRemaining: 180,
+      toolingTotalCostMUSD: TOOLING_COST_MUSD,
       maxMonthlyRate: 14,
       currentMonthlyRateTarget: targetRate,
-      actualMonthlyRate: targetRate,
+      actualMonthlyRate: 0,
       automationLevel: 3,
       qualityControlMaturity: 85,
       workerSkillScore: 82,
       activeUnitsOnLine: []
     };
 
+    const updatedFinancials = {
+      ...company.financials,
+      cash: parseFloat((company.financials.cash - TOOLING_COST_MUSD).toFixed(2))
+    };
+
     set({
       company: {
         ...company,
+        financials: updatedFinancials,
         assemblyLines: [...company.assemblyLines, newLine]
       },
       activeView: 'production'
     });
+
+    triggerDebouncedAutosave(get);
   },
 
   setAssemblyLineRate: (lineId, targetRate) => {
     const { company } = get();
     const updated = company.assemblyLines.map(l => l.id === lineId ? { ...l, currentMonthlyRateTarget: targetRate } : l);
     set({ company: { ...company, assemblyLines: updated } });
+    triggerDebouncedAutosave(get);
   },
 
   submitRfpProposal: (rfpId, proposal) => {
     const { company } = get();
     const updatedRfps = company.rfpProposals.map(r => {
       if (r.id === rfpId) {
-        return { ...r, status: 'bid_submitted' as const, playerBid: proposal };
+        return {
+          ...r,
+          status: 'under_review' as const,
+          reviewDaysRemaining: rngInstance.nextInt(14, 28),
+          playerBid: proposal
+        };
       }
       return r;
     });
     set({ company: { ...company, rfpProposals: updatedRfps } });
-  },
-
-  evaluateRfp: (rfpId) => {
-    const { company, competitors, airlines, currentDate } = get();
-    const rfp = company.rfpProposals.find(r => r.id === rfpId);
-    if (!rfp) return;
-
-    const airline = airlines.find(a => a.id === rfp.airlineId) || airlines[0];
-    const program = company.programs.find(p => p.id === rfp.playerBid?.programId);
-
-    const result = evaluateRfpDecision(
-      rfp,
-      program,
-      competitors,
-      airline,
-      company.reputationScore,
-      currentDate,
-      rngInstance
-    );
-
-    const updatedRfps = company.rfpProposals.map(r => {
-      if (r.id === rfpId) {
-        return { ...r, status: result.status };
-      }
-      return r;
-    });
-
-    const updatedContracts = result.firmContract
-      ? [...company.firmContracts, result.firmContract]
-      : company.firmContracts;
-
-    if (result.status === 'won_by_player' && program && result.firmContract) {
-      program.ordersBacklogCount += result.firmContract.quantityFirm;
-      company.financials.cash += result.firmContract.downPaymentReceived;
-    }
-
-    set({
-      company: {
-        ...company,
-        rfpProposals: updatedRfps,
-        firmContracts: updatedContracts,
-        newsHistory: [result.newsArticle, ...company.newsHistory]
-      }
-    });
+    triggerDebouncedAutosave(get);
   },
 
   updateDepartmentHeadcount: (deptId, delta) => {
@@ -749,6 +883,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return d;
     });
     set({ company: { ...company, departments: updatedDepts } });
+    triggerDebouncedAutosave(get);
   },
 
   toggleDepartmentOvertime: (deptId) => {
@@ -760,11 +895,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return d;
     });
     set({ company: { ...company, departments: updatedDepts } });
+    triggerDebouncedAutosave(get);
   },
 
   buildFacility: (facility) => {
     const { company } = get();
     set({ company: { ...company, facilities: [...company.facilities, facility] } });
+    triggerDebouncedAutosave(get);
   },
 
   saveGame: async (saveId, saveName) => {
@@ -808,7 +945,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
     return true;
   },
-
 
   exportSaveJson: async () => {
     const state = get();
@@ -861,9 +997,54 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({
       company: {
         ...company,
-        financials: { ...company.financials, cash: company.financials.cash + amountMUSD }
+        financials: { ...company.financials, cash: company.financials.cash + amountMUSD, insolvencyStatus: 'solvent' }
       }
     });
+  },
+
+  devSetPhase: (programId, phase) => {
+    const { company } = get();
+    const updated = company.programs.map(p => p.id === programId ? { ...p, currentPhase: phase, phaseProgressPercent: 0 } : p);
+    set({ company: { ...company, programs: updated } });
+  },
+
+  devAddFlightHours: (programId, hours) => {
+    const { company } = get();
+    const updated = company.programs.map(p => {
+      if (p.id !== programId) return p;
+      return {
+        ...p,
+        testCampaignsProgress: {
+          ...p.testCampaignsProgress,
+          flightHoursLogged: p.testCampaignsProgress.flightHoursLogged + hours,
+          flightEnvelopeExpansionPercent: Math.min(100, p.testCampaignsProgress.flightEnvelopeExpansionPercent + (hours / 18))
+        }
+      };
+    });
+    set({ company: { ...company, programs: updated } });
+  },
+
+  devPassCertification: (programId) => {
+    const { company, currentDate } = get();
+    const updated = company.programs.map(p => {
+      if (p.id !== programId) return p;
+      return {
+        ...p,
+        currentPhase: 'production_ready' as const,
+        typeCertificateIssued: true,
+        productionCertificateIssued: true,
+        scheduleMilestones: {
+          ...p.scheduleMilestones,
+          actualCertification: { ...currentDate }
+        },
+        testCampaignsProgress: {
+          ...p.testCampaignsProgress,
+          flightHoursLogged: 1800,
+          flightEnvelopeExpansionPercent: 100
+        }
+      };
+    });
+    set({ company: { ...company, programs: updated } });
   },
 
   devForceRfp: () => {

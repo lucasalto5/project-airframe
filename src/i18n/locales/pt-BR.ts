@@ -1,11 +1,11 @@
 // ============================================================================
-// PROJECT AIRFRAME - DICIONÁRIO DE LOCALIZAÇÃO EM PORTUGUÊS (PT-BR)
+// PROJECT AIRFRAME - DICIONÁRIO DE INTERNACIONALIZAÇÃO (PT-BR)
 // ============================================================================
 
 export const ptBR = {
   common: {
     appName: 'Project Airframe',
-    loading: 'Carregando ambiente de simulação aeronáutica...',
+    loading: 'Carregando ambiente de simulação aeroespacial...',
     cancel: 'Cancelar',
     continue: 'Continuar',
     confirm: 'Confirmar',
@@ -21,10 +21,10 @@ export const ptBR = {
     selected: 'Selecionado',
     active: 'Ativo',
     completed: 'Concluído',
-    inProgress: 'Em Andamento',
+    inProgress: 'Em Progresso',
     pending: 'Pendente',
     open: 'Aberto',
-    closed: 'Encerrado',
+    closed: 'Fechado',
     units: 'Unidades',
     aircraft: 'Aeronaves',
     passengers: 'Passageiros',
@@ -36,15 +36,15 @@ export const ptBR = {
     day: 'Dia',
     days: 'Dias',
     quarter: 'Trimestre',
-    usd: 'US$',
+    usd: 'USD',
     reputation: 'Reputação',
     reputationLevels: {
-      unknown: 'Desconhecida',
+      unknown: 'Desconhecido',
       experimental: 'Experimental',
       emerging: 'Emergente',
-      proven: 'Comprovada',
+      proven: 'Comprovado',
       trusted: 'Confiável',
-      global_supplier: 'Fornecedora Global',
+      global_supplier: 'Fornecedor Global',
       industry_leader: 'Líder da Indústria'
     }
   },
@@ -54,44 +54,44 @@ export const ptBR = {
     overview: 'Visão Geral',
     organization: 'Organização',
     finance: 'Finanças',
-    legacyTimeline: 'Linha do Tempo & Legado',
+    legacyTimeline: 'Linha do Tempo',
     
     productsGroup: 'PRODUTOS',
-    aircraft: 'Programas de Aeronave',
-    engines: 'Motores & Propulsão',
+    aircraft: 'Programas de Aeronaves',
+    engines: 'Programas de Motores',
     flightTesting: 'Ensaios em Voo',
 
     commercialGroup: 'COMERCIAL',
-    ordersRfps: 'Pedidos & Concorrências (RFP)',
-    customers: 'Clientes & Companhias Aéreas',
+    ordersRfps: 'Propostas e Pedidos',
+    customers: 'Companhias Aéreas',
     marketIntel: 'Inteligência de Mercado',
 
     operationsGroup: 'OPERAÇÕES',
-    production: 'Linhas de Montagem Final',
-    airworthiness: 'Aeronavegabilidade & Segurança',
-    fleetMap: 'Mapa Operacional em Tempo Real',
+    production: 'Montagem Final',
+    airworthiness: 'Aeronavegabilidade e Segurança',
+    fleetMap: 'Mapa de Operações',
 
     worldGroup: 'MUNDO',
-    news: 'Notícias & Despachos',
+    news: 'Notícias da Aviação',
     competitors: 'Concorrentes',
     saveArchive: 'Arquivo de Saves',
     settings: 'Configurações'
   },
 
   topbar: {
-    briefing: 'INFORME EXECUTIVO',
+    briefing: 'BRIEFING EXECUTIVO',
     pause: 'Pausar Simulação',
     speed1x: '1× Velocidade Normal',
-    speed2x: '2× Acelerada',
-    speed4x: '4× Rápida',
+    speed2x: '2× Acelerado',
+    speed4x: '4× Rápido',
     speed8x: '8× Alta Velocidade',
     speed16x: '16× Velocidade Máxima',
-    speedMenu: 'Velocidade da Simulação',
+    speedMenu: 'Velocidade de Simulação',
     treasury: 'Tesouraria',
-    runway: 'Fôlego',
+    runway: 'Fôlego de Caixa',
     notifications: 'Notificações',
-    alerts: 'Anomalia de Segurança de Voo',
-    dispatches: 'Despachos da Indústria',
+    alerts: 'Anomalias de Segurança',
+    dispatches: 'Notícias da Aviação',
     manualSave: 'Salvar Simulação',
     language: 'Idioma',
     settings: 'Configurações'
@@ -100,31 +100,31 @@ export const ptBR = {
   company: {
     founding: {
       badge: 'PROJECT AIRFRAME // NOVA EMPRESA',
-      title: 'Fundar uma Fabricante de Aeronaves',
-      subtitle: 'Estabeleça sua fabricante aeroespacial comercial. Projete aviões, gerencie linhas de produção, dispute encomendas de companhias aéreas e construa um legado duradouro na aviação.',
+      title: 'Fundar Fabricante de Aeronaves',
+      subtitle: 'Estabeleça sua fabricante aeroespacial comercial. Projete aviões, gerencie linhas de montagem, negocie pedidos de frota e construa um legado na aviação.',
       stepIndicator: 'Etapa {{current}} de {{total}}',
       steps: {
         identity: 'Identidade',
         headquarters: 'Sede Global',
         financing: 'Financiamento',
         philosophy: 'Filosofia',
-        review: 'Revisão & Fundação'
+        review: 'Revisão e Lançamento'
       },
       step1: {
         title: 'Crie sua fabricante',
-        desc: 'Comece definindo a identidade e a presença no mercado da sua empresa aeroespacial.',
-        nameLabel: 'Nome da Fabricante',
-        namePlaceholder: 'ex: Aureon Aerospace',
-        tickerLabel: 'Ticker / Código de Mercado',
+        desc: 'Defina a identidade e a presença no mercado da sua fabricante aeroespacial.',
+        nameLabel: 'Nome da Empresa / Fabricante',
+        namePlaceholder: 'ex: Embraer, Aureon Aerospace',
+        tickerLabel: 'Código da Ação / Ticker',
         tickerPlaceholder: 'ex: AUR',
-        previewTitle: 'Identidade Comercial',
-        previewDesc: 'Esta identificação constará nos certificados de tipo das aeronaves, listagens de mercado e contratos com companhias aéreas.'
+        previewTitle: 'Prévia da Identidade Comercial',
+        previewDesc: 'Este identificador aparecerá nos certificados de tipo, relatórios financeiros e contratos com companhias aéreas.'
       },
       step2: {
-        title: 'Escolha sua sede global',
-        desc: 'Selecione seu polo de engenharia e manufatura. O polo regional afeta a disponibilidade de engenheiros, custos de mão de obra e a proximidade da cadeia de fornecedores.',
+        title: 'Escolha sua sede',
+        desc: 'Selecione seu polo global de engenharia e manufatura. A localização afeta custos de mão de obra, talentos e acesso a fornecedores.',
         consequencesTitle: 'Vantagens do Polo Regional',
-        engineeringTalent: 'Talento de Engenharia',
+        engineeringTalent: 'Talento em Engenharia',
         laborCost: 'Custo de Mão de Obra',
         supplierAccess: 'Acesso a Fornecedores',
         governmentSupport: 'Apoio Governamental',
@@ -136,245 +136,323 @@ export const ptBR = {
         premium: 'Premium'
       },
       step3: {
-        title: 'Selecione o financiamento e estrutura de capital',
-        desc: 'Escolha a origem do capital inicial. Um aporte maior exige maior diluição de controle acionário, maior pressão por resultados e assentos no conselho.',
+        title: 'Selecione o financiamento inicial',
+        desc: 'Escolha a fonte do seu capital inicial. Mais capital exige maior diluição societária e pressão por metas rápidas.',
         founderEquity: 'Participação do Fundador',
         boardSeats: 'Assentos no Conselho',
         growthPressure: 'Pressão por Crescimento',
         startingCapital: 'Capital Inicial',
         options: {
           bootstrapped: {
-            title: 'Fundador Independente (Bootstrapped)',
-            capital: 'US$ 120M',
-            desc: 'Autofinanciamento. 100% de controle para o fundador, sem interferência de conselho e metas de crescimento conservadoras.'
+            title: 'Fundador Independente',
+            capital: 'US$ 180M',
+            desc: 'Startup autofinanciada. Mantenha 100% de controle sem interferência do conselho e com metas conservadoras.'
           },
           private_equity: {
             title: 'Sindicato de Investidores Privados',
             capital: 'US$ 650M',
-            desc: 'Aporte institucional equilibrado com metas de crescimento moderadas, boa rede de contatos na indústria e 2 assentos no conselho.'
+            desc: 'Aporte institucional equilibrado com metas razoáveis, contatos na indústria e 2 assentos no conselho.'
           },
           venture_capital: {
             title: 'Aliança de Venture Capital',
             capital: 'US$ 950M',
-            desc: 'Capital agressivo demandando rápida entrada no mercado, adoção tecnológica veloz e prazos curtos para entrada em serviço.'
+            desc: 'Capital agressivo exigindo entrada rápida no mercado, adoção ousada de tecnologia e prazos curtos de certificação.'
           },
           industrial_group: {
             title: 'Conglomerado Industrial',
             capital: 'US$ 1,2B',
-            desc: 'Parceria com grupo industrial tradicional, com acesso direto a fornecedores de aeroestruturas, ferramentais e redes de materiais.'
+            desc: 'Parceria com grupo industrial pesado oferecendo acesso direto a fornecedores de motores, ferramental e materiais compostos.'
           },
           state_backed: {
-            title: 'Fundo Soberano de Desenvolvimento',
+            title: 'Fundo Soberano Estatal',
             capital: 'US$ 1,6B',
-            desc: 'Aporte soberano de grande porte com o objetivo de formar uma fabricante campeã nacional com diretrizes estratégicas de estado.'
+            desc: 'Grande fundo soberano voltado a estabelecer um campeão aeroespacial nacional com mandato industrial estratégico.'
           }
         }
       },
       step4: {
-        title: 'O que deve definir sua empresa?',
-        desc: 'Selecione a filosofia de engenharia e de negócios da sua empresa. Isso influencia a velocidade de P&D, os custos de produção e a percepção das companhias aéreas.',
+        title: 'Qual filosofia guiará seus aviões?',
+        desc: 'Escolha sua filosofia de engenharia. Isso influencia a velocidade de P&D, custos unitários e a percepção das companhias aéreas.',
         options: {
           engineering_excellence: {
             title: 'Excelência em Engenharia',
-            desc: 'Projetar aeronaves com foco em pureza aerodinâmica, qualidade estrutural e menor consumo de combustível por assento.',
-            pros: ['+15% Eficiência aerodinâmica e de combustível', '+20% Reputação de engenharia no mercado'],
-            cons: ['+18% Custos mais altos de desenvolvimento em P&D']
+            desc: 'Foque em pureza aerodinâmica, materiais avançados e o menor consumo de combustível por assento.',
+            pros: ['+15% Eficiência aerodinâmica e consumo', '+20% Reputação técnica de marca'],
+            cons: ['+18% Custos de desenvolvimento em P&D']
           },
           cost_leadership: {
-            title: 'Liderança em Custos & Simplicidade',
-            desc: 'Entregar aviões comerciais acessíveis com baixo preço de aquisição, ferramentais ágeis e mínima complexidade fabril.',
-            pros: ['-20% Custo de ferramental e montagem', '+15% Velocidade no aumento de produção'],
-            cons: ['-10% Alcance comparado a rivais premium']
+            title: 'Liderança em Custos e Simplicidade',
+            desc: 'Entregue aeronaves acessíveis com baixo preço de compra, ferramental rápido e montagem simplificada.',
+            pros: ['-20% Custo de ferramental e montagem', '+15% Velocidade de aumento de produção'],
+            cons: ['-10% Alcance máximo em relação aos concorrentes']
           },
           passenger_comfort: {
-            title: 'Conforto & Espaço para o Passageiro',
-            desc: 'Priorizar seções de cabine mais largas, menor altitude de cabine e isolamento acústico silencioso.',
-            pros: ['+25% Preferência do passageiro pela marca', '+15% Atratividade para rotas rentáveis'],
+            title: 'Conforto e Espaço do Passageiro',
+            desc: 'Priorize cabines mais largas, menor altitude de cabine e isolamento acústico silencioso.',
+            pros: ['+25% Preferência dos passageiros', '+15% Apelo para companhias de alto padrão'],
             cons: ['+8% Peso estrutural da fuselagem']
           },
           operational_ruggedness: {
             title: 'Robustez Operacional',
-            desc: 'Trem de pouso superdimensionado, alta redundância em sistemas e capacidade de operação em pistas não pavimentadas.',
-            pros: ['+25% Confiabilidade de despacho em climas severos', 'Certificação para pistas secundárias e cascalho'],
+            desc: 'Reforce o trem de pouso, redundância elétrica e compatibilidade com pistas não pavimentadas.',
+            pros: ['+25% Confiabilidade de despacho em climas severos', 'Certificação para pistas de cascalho'],
             cons: ['+10% Margem de peso vazio']
           },
           technological_pioneer: {
             title: 'Pioneirismo Tecnológico',
-            desc: 'Adoção avançada de envelope de voo Fly-By-Wire e arquiteturas de sistemas mais elétricos.',
-            pros: ['+20% Atratividade do cockpit moderno', '+12% Extensão nos intervalos de manutenção'],
-            cons: ['Maiores riscos e prazos na certificação em voo']
+            desc: 'Adoção agressiva de Fly-By-Wire adaptativo e arquitetura de sistemas mais elétricos.',
+            pros: ['+20% Modernidade do cockpit', '+12% Extensão nos intervalos de manutenção'],
+            cons: ['Maiores riscos na campanha de ensaios em voo']
           }
         }
       },
       step5: {
-        title: 'Revisão & Constituição da Empresa',
-        desc: 'Confira as diretrizes fundamentais antes de formalizar a constituição da sua fabricante de aeronaves.',
-        startingCapital: 'Caixa Líquido Inicial',
-        monthlyBurnEst: 'Queima Mensal Estimada',
-        founderOwnership: 'Controle do Fundador',
-        headquartersLabel: 'Sede Global',
+        title: 'Revisar e Fundar Empresa',
+        desc: 'Confirme seu estatuto antes de incorporar oficialmente sua fabricante aeroespacial.',
+        startingCapital: 'Tesouraria Líquida',
+        monthlyBurnEst: 'Gasto Mensal Estimado',
+        founderOwnership: 'Participação do Fundador',
+        headquartersLabel: 'Sede Principal',
         philosophyLabel: 'Filosofia Corporativa',
         submitButton: 'Fundar {{companyName}}',
-        foundingHeadline: '{{companyName}} Fundada Oficialmente',
-        foundingSummary: 'A {{companyName}} foi estabelecida oficialmente em {{city}}, {{country}} com {{capital}} em capital inicial de fundação.'
+        foundingHeadline: '{{companyName}} Oficialmente Fundada',
+        foundingSummary: 'A {{companyName}} foi estabelecida em {{city}}, {{country}} com {{capital}} em capital fundador.'
       }
     }
   },
 
   dashboard: {
     greeting: 'Bom dia, {{companyName}}',
-    briefingSubtitle: 'Sua empresa está capitalizada e pronta para ingressar no mercado de aviação comercial.',
-    briefingWithProgram: 'Gerenciando {{count}} programa(s) ativo(s) a partir do seu polo em {{city}}.',
+    briefingSubtitle: 'Sua empresa está capitalizada e pronta para entrar no mercado de aeronaves comerciais.',
+    briefingWithProgram: 'Gerenciando {{count}} programa(s) ativo(s) a partir da sua fábrica em {{city}}.',
     metrics: {
       cash: 'Caixa da Tesouraria',
-      runway: 'Fôlego Financeiro',
+      runway: 'Fôlego de Caixa',
       backlog: 'Carteira de Pedidos',
-      trust: 'Confiança no Mercado'
+      trust: 'Confiança na Indústria'
+    },
+    insolvency: {
+      bannerTitle: 'DÉFICIT CRÍTICO DE LIQUIDEZ',
+      bannerDesc: 'O caixa da empresa está negativo. A empresa está operando sob reestruturação financeira.',
+      emergencyFunding: 'Solicitar Empréstimo Ponte Emergencial (US$ 100M)',
+      slowdownPrograms: 'Desacelerar Queima de P&D'
+    },
+    nextAction: {
+      title: 'PRÓXIMA AÇÃO RECOMENDADA',
+      designFirst: {
+        title: 'Projetar Aeronave Clean-Sheet',
+        desc: 'Sua empresa não possui programas ativos. Abra o Estúdio de Design para configurar e lançar seu primeiro avião.',
+        action: 'Abrir Estúdio de Design'
+      },
+      buildPrototype: {
+        title: 'Construir Protótipo de Ensaios',
+        desc: 'Engenharia detalhada concluída. Construa seu primeiro protótipo (US$ 35M) para preparar os ensaios em solo.',
+        action: 'Construir Protótipo'
+      },
+      conductGroundTests: {
+        title: 'Executar Ensaios em Solo',
+        desc: 'Protótipo concluído. Complete os ensaios estáticos e integração de sistemas antes do primeiro voo.',
+        action: 'Ir para Ensaios em Solo'
+      },
+      flightTestCampaign: {
+        title: 'Avançar Campanha de Ensaios em Voo',
+        desc: 'Seu {{aircraft}} necessita de mais {{hoursRemaining}} horas de ensaio em voo e cenários mandatórios antes da certificação.',
+        action: 'Abrir Ensaios em Voo'
+      },
+      secureOrders: {
+        title: 'Conquistar Clientes de Lançamento',
+        desc: 'Sua aeronave está próxima da certificação. Envie propostas em RFPs compatíveis para formar sua carteira de pedidos.',
+        action: 'Ver RFPs Compatíveis'
+      },
+      commissionLine: {
+        title: 'Comissionar Linha de Montagem',
+        desc: 'Você possui pedidos firmes. Comissione o ferramental da linha de montagem (US$ 85M) para iniciar a produção.',
+        action: 'Abrir Montagem Final'
+      },
+      deliverAircraft: {
+        title: 'Realizar Entregas aos Clientes',
+        desc: 'Aeronaves estão avançando pelas estações. Conclua a produção para entregar as unidades e receber a receita.',
+        action: 'Ver Linha de Produção'
+      }
+    },
+    roadmap: {
+      title: 'Caminho até a Entrada em Serviço',
+      concept: 'Conceito',
+      preliminary: 'Projeto Preliminar',
+      detailed: 'Projeto Detalhado',
+      prototype: 'Construção do Protótipo',
+      groundTests: 'Ensaios em Solo',
+      firstFlight: 'Primeiro Voo',
+      flightTesting: 'Campanha de Ensaios em Voo',
+      certification: 'Certificação de Tipo',
+      production: 'Produção em Série',
+      firstDelivery: 'Primeira Entrega (EIS)',
+      projectedDate: 'Previsão: {{date}}',
+      actualDate: 'Concluído: {{date}}',
+      pending: 'Aguardando pré-requisitos'
     },
     emptyState: {
-      title: 'Sua Primeira Aeronave Começa Aqui',
-      desc: 'Sua empresa ainda não possui nenhum programa de aeronave em andamento. Inicie o desenvolvimento do zero de um avião comercial e dispute seus primeiros clientes de frotas.',
-      action: 'Iniciar Programa de Aeronave'
+      title: 'Seu Primeiro Avião Começa Aqui',
+      desc: 'Sua empresa ainda não possui programas ativos. Lance sua primeira aeronave comercial e conquiste seus primeiros clientes.',
+      action: 'Lançar Programa de Aeronave'
     },
     activeProgram: {
       title: 'Programa de Aeronave Ativo',
       viewAll: 'Todos os Programas ({{count}})',
       phase: 'Fase Atual',
       phaseProgress: 'Progresso da Fase ({{percent}}%)',
-      targetEis: 'Previsão de Entrada em Serviço: Ano {{year}}',
-      flightOpsAction: 'Operações de Ensaios em Voo',
+      targetEis: 'Previsão de EIS: Ano {{year}}',
+      flightOpsAction: 'Operações de Voo de Ensaio',
       specs: {
-        seating: 'Capacidade de Passageiros',
-        range: 'Alcance Projetado',
+        seating: 'Capacidade de Assentos',
+        range: 'Alcance do Projeto',
         listPrice: 'Preço de Tabela',
         backlog: 'Pedidos Firmes'
       }
     },
     rfpSection: {
-      title: 'Oportunidades de Mercado & Concorrências (RFP)',
+      title: 'Oportunidades de Mercado e RFPs',
       viewAll: 'Ver Todas ({{count}})',
-      empty: 'Nenhuma concorrência aberta por companhias aéreas no momento.',
+      empty: 'Nenhuma concorrência aberta no momento.',
       closingIn: 'Proposta encerra em {{days}} dias',
       budgetPerUnit: 'Orçamento: US$ {{amount}}M/unidade',
-      action: 'Ver Concorrência'
+      action: 'Ver Proposta'
     },
     newsSection: {
-      title: 'Últimas Notícias da Aviação',
+      title: 'Últimas Notícias da Indústria',
       viewAll: 'Noticiário Completo',
-      empty: 'Nenhum despacho de notícias registrado ainda.'
+      empty: 'Nenhuma notícia registrada ainda.'
     }
   },
 
   designer: {
-    title: 'Projeto de Aeronave do Zero',
+    title: 'Estúdio de Design de Aeronaves Clean-Sheet',
     step: 'Etapa {{current}} de {{total}}: {{name}}',
-    steps: {
-      segment: 'Segmento de Mercado',
-      fuselage: 'Fuselagem & Cabine',
-      wing: 'Asa & Aerodinâmica',
-      propulsion: 'Propulsão & Motores',
-      systems: 'Aviônica & Comandos de Voo',
-      materials: 'Materiais Estruturais',
-      livery: 'Pintura & Identidade Visual',
-      summary: 'Lançamento do Programa'
+    warnings: {
+      highWingLoadingTitle: 'CARGA ALAR ELEVADA ({{value}} kg/m²)',
+      highWingLoadingDesc: 'Exigirá velocidades mais altas na decolagem e pistas mais longas.',
+      lowWingLoadingTitle: 'CARGA ALAR BAIXA ({{value}} kg/m²)',
+      lowWingLoadingDesc: 'Asa maior que o necessário aumenta o peso estrutural e o arrasto de fricção em cruzeiro.',
+      underpoweredTitle: 'RELAÇÃO EMPUXO-PESO INSUFICIENTE (E/P {{tw}})',
+      underpoweredDesc: 'Os motores selecionados fornecem pouca margem de subida para o MTOW configurado.',
+      excessiveFuelTitle: 'VOLUME DE COMBUSTÍVEL EXCESSIVO ({{pct}}% do MTOW)',
+      excessiveFuelDesc: 'A massa de combustível representa uma fração desproporcional do peso total da aeronave.',
+      runwayRestrictiveTitle: 'PISTA DE DECOLAGEM RESTRITIVA ({{tofl}} m)',
+      runwayRestrictiveDesc: 'A distância de decolagem limita as operações a grandes aeroportos internacionais.'
     },
-    blueprint: 'Blueprint Técnico em CAD',
-    projectedMetrics: 'Métricas de Engenharia Calculadas',
-    mtow: 'Peso Máximo de Decolagem (MTOW)',
-    oew: 'Peso Operacional Vazio (OEW)',
-    fuelCapacity: 'Capacidade de Combustível',
-    typicalSeats: 'Capacidade Típica de Passageiros',
-    maxRange: 'Alcance Máximo',
-    cruiseMach: 'Velocidade de Cruzeiro',
-    takeoffDistance: 'Comprimento de Pista para Decolagem',
-    estimatedDevCost: 'Custo Estimado de P&D',
-    estimatedDevTime: 'Cronograma Estimado de P&D',
-    listPrice: 'Preço Unitário de Tabela',
-    launchProgram: 'Iniciar Desenvolvimento do Programa',
-    saveDraft: 'Salvar Rascunho do Projeto'
+    why: {
+      wingspan: 'Maior envergadura e aspecto aumentam o rendimento aerodinâmico e reduzem o arrasto induzido, aumentando o alcance, mas geram maior momento fletor na raiz da asa.',
+      sweep: 'O enflechamento atrasa a formação de ondas de choque em velocidades transônicas (Mach 0,78–0,85), mas reduz o coeficiente de sustentação em baixas velocidades.',
+      winglets: 'Dispositivos de ponta de asa dissipam os vórtices marginais, proporcionando economia de 4% a 6% no consumo de combustível em etapas longas com baixo acréscimo de peso.',
+      materials: 'Compósitos de fibra de carbono reduzem expressivamente o peso da estrutura e eliminam a corrosão, porém exigem maior investimento em ferramental e autoclaves.',
+      engines: 'Turbofans modernos de alta razão de diluição (BPR) diminuem o consumo específico de combustível e ruído, mas possuem diâmetro maior e maior arrasto de nacele.',
+      fbw: 'Comandos Fly-By-Wire digitais oferecem proteção ativa de envelope, dispensam cabos de aço pesados e aliviam cargas estruturais durante rajadas de vento.'
+    },
+    deltas: {
+      range: 'Variação de Alcance',
+      fuelBurn: 'Variação no Consumo',
+      oew: 'Variação no Peso Vazio',
+      mtow: 'Variação no MTOW',
+      tofl: 'Variação na Decolagem',
+      unitCost: 'Variação no Custo Unitário',
+      rdCost: 'Variação no Orçamento de P&D'
+    }
   },
 
   rfp: {
-    title: 'Concorrências & Encomendas de Frotas',
-    openTenders: 'Concorrências Abertas (RFPs)',
-    activeContracts: 'Contratos Firmados de Produção',
+    title: 'Concorrências e Pedidos de Companhias Aéreas',
+    fleetRenewalTitle: 'Concorrência de Renovação da {{airline}}: {{segment}}',
+    openTenders: 'RFPs em Aberto',
+    activeContracts: 'Contratos de Produção Firmados',
     airline: 'Companhia Aérea',
     segment: 'Segmento Solicitado',
     quantity: 'Quantidade',
     firmAndOptions: '{{firm}} Firmes + {{options}} Opções',
     maxBudget: 'Orçamento Máximo',
-    deliveryDesired: 'Prazo Desejado',
-    submitBid: 'Elaborar & Submeter Proposta',
-    bidSubmitted: 'Proposta Enviada',
-    importanceFactors: 'Critérios de Avaliação'
-  },
-
-  production: {
-    title: 'Linhas de Montagem Final & Manufatura',
-    subtitle: 'Gerencie cadência de montagem das células, investimentos em ferramentais e slots de entrega.',
-    activeLines: 'Linhas de Montagem Ativas',
-    addLine: 'Construir Nova Linha de Montagem',
-    lineName: 'Linha de Montagem {{number}}',
-    ratePerMonth: 'Cadência Mensal de Produção',
-    workers: 'Mão de Obra Fabril',
-    efficiency: 'Eficiência da Planta',
-    monthlyOperatingCost: 'Custo Operacional Mensal'
-  },
-
-  testing: {
-    title: 'Campanha de Ensaios em Voo & Certificação',
-    subtitle: 'Realize ensaios estáticos em solo, expansão do envelope de voo e voos para certificação de tipo.',
-    testFleet: 'Frota de Protótipos de Teste',
-    addPrototype: 'Fabricar Protótipo Adicional',
-    flightHours: 'Horas de Ensaios em Voo',
-    certProgress: 'Progresso da Certificação de Tipo',
-    conductTest: 'Executar Voo de Teste',
-    groundTests: 'Ensaios Estáticos em Solo',
-    envelopeExpansion: 'Expansão do Envelope de Voo',
-    avionicsCert: 'Certificação de Sistemas & Aviônica',
-    icingColdOps: 'Operações em Clima Extremo & Gelo'
-  },
-
-  safety: {
-    title: 'Aeronavegabilidade & Segurança Operacional',
-    subtitle: 'Monitoramento de confiabilidade de frota, investigações de ocorrências e diretrizes regulatórias.',
-    activeFleetInService: 'Frota Ativa em Serviço',
-    fleetDispatchReliability: 'Confiabilidade de Despacho da Frota',
-    incidentHistory: 'Ocorrências Registradas em Operação',
-    noIncidents: 'Histórico exemplar de segurança. Nenhuma anomalia ativa em serviço.',
-    investigationPhase: 'Fase de Investigação',
-    adDirectives: 'Diretrizes de Aeronavegabilidade (DA)'
-  },
-
-  news: {
-    title: 'Noticiário Global da Aviação',
-    subtitle: 'Despachos da indústria em tempo real, decisões regulatórias e movimentações de concorrentes.',
-    categories: {
-      all: 'Todos os Despachos',
-      commercial: 'Comercial & Encomendas',
-      engineering: 'Engenharia & P&D',
-      safety: 'Segurança & Diretrizes',
-      financial: 'Corporativo & Finanças'
+    deliveryDesired: 'Entrega Desejada',
+    submitBid: 'Preparar e Enviar Proposta',
+    bidSubmitted: 'Proposta Enviada — Companhia Analisando',
+    underReview: 'Companhia Avaliando Proposta ({{days}} dias restantes)',
+    compatibility: {
+      title: 'Compatibilidade da Aeronave',
+      excellent: 'Excelente Compatibilidade',
+      good: 'Boa Compatibilidade',
+      marginal: 'Compatibilidade Limítrofe',
+      incompatible: 'Incompatível'
     }
   },
 
-  milestones: {
-    title: 'Linha do Tempo & Legado na Aviação',
-    subtitle: 'Acompanhe as conquistas históricas da sua empresa e da engenharia aeroespacial.',
-    unlocked: 'Marcos Históricos Alcançados',
-    locked: 'Próximos Marcos Bloqueados'
+  production: {
+    title: 'Linhas de Montagem Final e Produção',
+    subtitle: 'Gerencie taxas de montagem, investimentos em ferramental e entregas aos clientes.',
+    activeLines: 'Linhas de Montagem Ativas',
+    addLine: 'Comissionar Linha de Montagem (US$ 85M)',
+    toolingInProgress: 'Comissionamento de Ferramental ({{days}} dias restantes)',
+    status: {
+      tooling: 'FERRAMENTAL EM PREPARAÇÃO',
+      ready: 'PRONTA PARA PRODUÇÃO',
+      producing: 'PRODUÇÃO ATIVA'
+    },
+    ratePerMonth: 'Meta de Produção Mensal',
+    actualRate: 'Taxa Real: {{rate}} / mês',
+    stations: {
+      s1: { name: 'Junção e Emenda das Seções da Fuselagem', desc: 'Alinhamento a laser e rebitagem automática das seções dianteira, central e traseira.' },
+      s2: { name: 'Junção Asa-Fuselagem a Laser', desc: 'Alinhamento de alta precisão e fixação da caixa de asa em titânio de alta resistência.' },
+      s3: { name: 'Integração da Empenagem e Estabilizadores', desc: 'Fixação do estabilizador vertical e atuadores do estabilizador horizontal ajustável.' },
+      s4: { name: 'Instalação Hidráulica, Fiação e Combustível', desc: 'Instalação de chicotes elétricos, linhas hidráulicas de alta pressão e bombas de combustível.' },
+      s5: { name: 'Montagem de Cabine, Assentos e Galleys', desc: 'Instalação de poltronas, bagageiros superiores, cozinhas de bordo, lavatórios e entretenimento.' },
+      s6: { name: 'Instalação dos Pilones e Motores Turbofan', desc: 'Fixação dos pilones sob as asas, suspensão dos turbofans e montagem das naceles.' },
+      s7: { name: 'Ligue dos Aviônicos e Testes de Sistemas', desc: 'Inicialização do glass cockpit, calibração dos servos de comando de voo e testes de estanqueidade.' },
+      s8: { name: 'Hangar de Pintura e Voo de Aceitação', desc: 'Aplicação da pintura personalizada do cliente, ensaio em ponto de solo e voo de entrega.' }
+    }
+  },
+
+  testing: {
+    title: 'Campanha de Ensaios em Voo e Certificação',
+    subtitle: 'Conduza ensaios estáticos em solo, expansão de envelope e voos para certificação de tipo.',
+    testFleet: 'Frota de Protótipos de Ensaio',
+    addPrototype: 'Construir Protótipo (US$ 35M)',
+    flightHours: 'Horas de Voo de Ensaio',
+    envelopeExpansion: 'Expansão de Envelope de Voo',
+    certProgress: 'Status da Certificação de Tipo',
+    conductTest: 'Agendar Missão de Ensaio',
+    sortiesRunning: 'Missão em andamento (Dia {{elapsed}}/{{total}})',
+    scenarios: {
+      structural_ultimate_load: { name: 'Ensaio de Carga Limite Estrutural 150%', desc: 'Atuadores hidráulicos flexionam a asa de carbono até 1,5x o limite de projeto.' },
+      cabin_emergency_evacuation: { name: 'Simulação de Evacuação Total em 90 Segundos', desc: 'Evacuação de passageiros na escuridão total com 50% das saídas bloqueadas.' },
+      landing_gear_rto_brakes: { name: 'Decolagem Abortada de Máxima Energia (RTO)', desc: 'Frenagem no peso máximo com freios desgastados e sem o uso de reversores.' },
+      iron_bird_systems_integration: { name: 'Bancada Integrada de Sistemas Iron Bird', desc: 'Bancada em escala real alimentando aviônicos, hidráulica e atuadores.' },
+      basic_handling_qualities: { name: 'Qualidades de Pilotagem Básica', desc: 'Voo inicial para verificação de compensação, resposta aos comandos e estabilidade.' },
+      stall_campaign: { name: 'Estol em Baixa Velocidade e Proteção Alfa', desc: 'Exploração dos limites de ângulo de ataque, avisador de estol e proteções FBW.' },
+      flutter_envelope_expansion: { name: 'Mergulho Transônico e Margem de Flutter', desc: 'Mergulho até Mach 0,93 para verificar o amortecimento aeroelástico da cauda.' },
+      hot_and_high_trials: { name: 'Ensaios em Aeroportos Altos e Quentes', desc: 'Desdobramento em aeroporto de alta altitude a 38°C para validar gradientes de subida.' },
+      natural_icing_campaign: { name: 'Ensaios em Condições Severas de Gelo Natural', desc: 'Busca por nuvens com água super-resfriada para testar o sistema de degelo das asas.' },
+      crosswind_landing_trials: { name: 'Pousos com Vento Cruzado Rajado de 35 Nós', desc: 'Avaliação da autoridade do leme e absorção de cargas laterais do trem de pouso.' },
+      autoland_cat3_validation: { name: 'Pouso Automático em Visibilidade Zero CAT IIIb', desc: 'Aproximação de precisão por instrumentos com desaceleração automática na pista.' },
+      long_range_endurance_validation: { name: 'Validação de Longo Alcance ETOPS', desc: 'Voo de longa duração comprovando confiabilidade de desvio e consumo de óleo.' }
+    }
+  },
+
+  news: {
+    templates: {
+      maidenFlight: 'O protótipo de testes do {{aircraft}} completou seu histórico voo inaugural hoje, iniciando sua campanha formal de certificação.',
+      certificationGranted: 'O {{aircraft}} recebeu oficialmente a Certificação de Tipo comercial completa pelas autoridades aeronáuticas.',
+      firstDelivery: 'A primeira unidade de produção do {{aircraft}} ({{msn}}) foi oficialmente entregue ao cliente de lançamento {{customer}}.',
+      rfpWon: 'A {{airline}} selecionou oficialmente o {{aircraft}}, assinando contrato firme para {{quantity}} aeronaves avaliadas em US$ {{valueB}}B.',
+      rfpLost: 'A {{airline}} concedeu sua concorrência de frota à {{competitor}} para {{quantity}} unidades do {{planeName}}.'
+    }
   },
 
   settings: {
-    title: 'Preferências do Sistema',
+    title: 'Preferências do Aplicativo',
     language: 'Idioma / Language',
-    theme: 'Tema da Interface',
+    theme: 'Tema Visual',
     darkTheme: 'Escuro Industrial (Padrão)',
     lightTheme: 'Claro Técnico',
     units: 'Unidades de Medida',
     metric: 'Métrico (km, kg, m)',
     imperial: 'Imperial (nm, lbs, ft)',
-    autosave: 'Intervalo de Salvamento Automático',
+    autosave: 'Intervalo de Salvamento',
     sound: 'Efeitos Sonoros'
   }
 };

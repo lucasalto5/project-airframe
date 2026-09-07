@@ -145,7 +145,7 @@ export const en = {
         options: {
           bootstrapped: {
             title: 'Bootstrapped Founder',
-            capital: '$120M',
+            capital: '$180M',
             desc: 'Self-funded startup. Retain 100% founder equity with zero board interference and conservative growth milestones.'
           },
           private_equity: {
@@ -231,6 +231,66 @@ export const en = {
       backlog: 'Firm Backlog',
       trust: 'Industry Trust'
     },
+    insolvency: {
+      bannerTitle: 'CRITICAL LIQUIDITY DEFICIT',
+      bannerDesc: 'Treasury cash has dropped below zero. The company is operating under liquidity restructuring.',
+      emergencyFunding: 'Request Emergency Bridge Loan ($100M)',
+      slowdownPrograms: 'Reduce R&D Burn'
+    },
+    nextAction: {
+      title: 'RECOMMENDED NEXT ACTION',
+      designFirst: {
+        title: 'Design Clean-Sheet Aircraft',
+        desc: 'Your company has no active programs. Open the Aircraft Designer to configure and launch your first airliner.',
+        action: 'Open Aircraft Designer'
+      },
+      buildPrototype: {
+        title: 'Construct Flight Test Article',
+        desc: 'Detailed engineering complete. Build your first prototype aircraft ($35M) to prepare for ground testing.',
+        action: 'Build Prototype'
+      },
+      conductGroundTests: {
+        title: 'Execute Ground Test Campaigns',
+        desc: 'Your prototype is built. Complete mandatory ground static and systems integration tests before first flight.',
+        action: 'Go to Ground Tests'
+      },
+      flightTestCampaign: {
+        title: 'Advance Flight Test Campaign',
+        desc: 'Your {{aircraft}} requires {{hoursRemaining}} additional flight-test hours and mandatory scenarios before certification.',
+        action: 'Open Flight Testing'
+      },
+      secureOrders: {
+        title: 'Secure Launch Customer Orders',
+        desc: 'Your aircraft is approaching certification. Submit bids on compatible airline RFPs to build your backlog.',
+        action: 'View Compatible RFPs'
+      },
+      commissionLine: {
+        title: 'Commission Final Assembly Line',
+        desc: 'You have firm customer contracts. Commission a final assembly line ($85M tooling) to begin deliveries.',
+        action: 'Open Final Assembly'
+      },
+      deliverAircraft: {
+        title: 'Fulfill Customer Deliveries',
+        desc: 'Aircraft units are advancing down the assembly line. Complete production to deliver units and collect revenue.',
+        action: 'View Production Line'
+      }
+    },
+    roadmap: {
+      title: 'Road to Entry into Service',
+      concept: 'Concept',
+      preliminary: 'Preliminary Design',
+      detailed: 'Detailed Design',
+      prototype: 'Prototype Build',
+      groundTests: 'Ground Tests',
+      firstFlight: 'First Flight',
+      flightTesting: 'Flight Test Campaign',
+      certification: 'Type Certification',
+      production: 'Series Production',
+      firstDelivery: 'First Delivery (EIS)',
+      projectedDate: 'Estimated: {{date}}',
+      actualDate: 'Completed: {{date}}',
+      pending: 'Pending prerequisites'
+    },
     emptyState: {
       title: 'Your First Aircraft Starts Here',
       desc: 'Your company has no active aircraft programs yet. Launch your first clean-sheet commercial aircraft and compete for your first airline fleet customers.',
@@ -268,34 +328,40 @@ export const en = {
   designer: {
     title: 'Clean-Sheet Aircraft Designer',
     step: 'Step {{current}} of {{total}}: {{name}}',
-    steps: {
-      segment: 'Market Segment',
-      fuselage: 'Fuselage & Cabin',
-      wing: 'Wing & Aerodynamics',
-      propulsion: 'Propulsion & Engines',
-      systems: 'Avionics & Flight Controls',
-      materials: 'Structural Materials',
-      livery: 'Brand Livery',
-      summary: 'Program Launch'
+    warnings: {
+      highWingLoadingTitle: 'HIGH WING LOADING ({{value}} kg/m²)',
+      highWingLoadingDesc: 'Requires high takeoff speeds and longer runway field lengths.',
+      lowWingLoadingTitle: 'LOW WING LOADING ({{value}} kg/m²)',
+      lowWingLoadingDesc: 'Larger wing than necessary increases structural empty weight and cruise skin friction.',
+      underpoweredTitle: 'UNDERPOWERED THRUST-TO-WEIGHT (T/W {{tw}})',
+      underpoweredDesc: 'Current engines provide inadequate climb gradient margin for the selected MTOW.',
+      excessiveFuelTitle: 'EXCESSIVE FUEL VOLUME ({{pct}}% MTOW)',
+      excessiveFuelDesc: 'Fuel mass represents an excessive proportion of takeoff weight for this cabin capacity.',
+      runwayRestrictiveTitle: 'RESTRICTIVE RUNWAY REQUIREMENT ({{tofl}} m)',
+      runwayRestrictiveDesc: 'Takeoff distance limits operations to major intercontinental hub runways.'
     },
-    blueprint: 'Technical CAD Blueprint',
-    projectedMetrics: 'Calculated Engineering Metrics',
-    mtow: 'Max Takeoff Weight (MTOW)',
-    oew: 'Operating Empty Weight (OEW)',
-    fuelCapacity: 'Fuel Capacity',
-    typicalSeats: 'Typical Seating',
-    maxRange: 'Maximum Range',
-    cruiseMach: 'Cruise Speed',
-    takeoffDistance: 'Takeoff Field Length',
-    estimatedDevCost: 'Estimated R&D Cost',
-    estimatedDevTime: 'Target R&D Schedule',
-    listPrice: 'Unit List Price',
-    launchProgram: 'Initiate Program Development',
-    saveDraft: 'Save Design Draft'
+    why: {
+      wingspan: 'A higher aspect ratio wing reduces induced vortex drag during cruise, boosting range and fuel economy, but increases wing bending moments and empty weight.',
+      sweep: 'Wing sweep delays transonic compressibility drag, allowing higher cruise Mach numbers (0.78–0.85), but reduces low-speed maximum lift coefficient.',
+      winglets: 'Wingtip devices diffuse the tip vortex, delivering up to 4–6% fuel burn reductions on long stages with minimal structural weight additions.',
+      materials: 'Advanced carbon composites significantly reduce airframe empty weight and eliminate corrosion, at the expense of higher tooling capital and non-destructive testing requirements.',
+      engines: 'Modern high-bypass turbofans lower specific fuel consumption (SFC) and acoustic emissions, but feature larger nacelle drag and higher dry engine mass.',
+      fbw: 'Full Fly-By-Wire provides autonomous flight envelope protection, eliminates heavy control cables, and enables load alleviation during gust encounters.'
+    },
+    deltas: {
+      range: 'Range Delta',
+      fuelBurn: 'Fuel Burn Delta',
+      oew: 'Empty Mass Delta',
+      mtow: 'MTOW Delta',
+      tofl: 'Takeoff Run Delta',
+      unitCost: 'Unit Cost Delta',
+      rdCost: 'R&D Budget Delta'
+    }
   },
 
   rfp: {
     title: 'Airline Fleet Tenders & Orders',
+    fleetRenewalTitle: '{{airline}} Fleet Renewal Tender: {{segment}}',
     openTenders: 'Open Airline RFPs',
     activeContracts: 'Signed Production Contracts',
     airline: 'Airline',
@@ -305,64 +371,76 @@ export const en = {
     maxBudget: 'Max Budget',
     deliveryDesired: 'Target Delivery',
     submitBid: 'Prepare & Submit Bid',
-    bidSubmitted: 'Bid Submitted',
-    importanceFactors: 'Evaluation Criteria'
+    bidSubmitted: 'Bid Submitted — Airline Reviewing',
+    underReview: 'Airline Evaluating Tender ({{days}} days remaining)',
+    compatibility: {
+      title: 'Aircraft Compatibility',
+      excellent: 'Excellent Fit',
+      good: 'Good Fit',
+      marginal: 'Marginal Match',
+      incompatible: 'Incompatible'
+    }
   },
 
   production: {
     title: 'Final Assembly Lines & Manufacturing',
     subtitle: 'Manage airframe assembly rates, tooling investments, and delivery slots.',
     activeLines: 'Active Assembly Lines',
-    addLine: 'Commission New Assembly Line',
-    lineName: 'Assembly Line {{number}}',
-    ratePerMonth: 'Monthly Production Rate',
-    workers: 'Manufacturing Workforce',
-    efficiency: 'Factory Efficiency',
-    monthlyOperatingCost: 'Monthly Facility Cost'
+    addLine: 'Commission Assembly Line ($85M)',
+    toolingInProgress: 'Tooling & Jigs Commissioning ({{days}} days remaining)',
+    status: {
+      tooling: 'TOOLING IN PROGRESS',
+      ready: 'READY FOR PRODUCTION',
+      producing: 'ASSEMBLY ACTIVE'
+    },
+    ratePerMonth: 'Monthly Production Rate Target',
+    actualRate: 'Actual Rate: {{rate}} / month',
+    stations: {
+      s1: { name: 'Fuselage Shell Joining & Splice', desc: 'Laser alignment and automatic riveting of forward, center, and aft fuselage sections.' },
+      s2: { name: 'Wing-to-Body Laser Join', desc: 'High-precision laser alignment and titanium main wing-box mounting.' },
+      s3: { name: 'Empennage & Fin Integration', desc: 'Vertical stabilizer attachment and horizontal stabilizer actuator fitting.' },
+      s4: { name: 'Hydraulics, Wiring & Fuel Lines', desc: 'Installation of high-pressure hydraulic lines, bundle harnesses, and fuel pumps.' },
+      s5: { name: 'Cabin Furnishing & Galleys', desc: 'Seating installation, overhead stowage bins, galleys, lavatories, and IFE.' },
+      s6: { name: 'Propulsion Pylons & Turbofans', desc: 'Engine pylon attachment, dual turbofan hanging, and nacelle cowlings.' },
+      s7: { name: 'Avionics Power-On & Systems Test', desc: 'Cockpit glass power-up, flight control servo calibration, and pressure test.' },
+      s8: { name: 'Paint Hangar & Customer Acceptance', desc: 'Custom customer livery application, engine run-up, and acceptance flight.' }
+    }
   },
 
   testing: {
     title: 'Flight Test & Certification Campaign',
     subtitle: 'Conduct ground tests, flutter envelope expansion, and type certification flights.',
     testFleet: 'Prototype Test Fleet',
-    addPrototype: 'Build Prototype Tail',
+    addPrototype: 'Build Prototype Tail ($35M)',
     flightHours: 'Flight Test Hours',
-    certProgress: 'Type Certification Progress',
-    conductTest: 'Execute Test Sortie',
-    groundTests: 'Ground Static Tests',
     envelopeExpansion: 'Flight Envelope Expansion',
-    avionicsCert: 'Avionics & Systems Cert',
-    icingColdOps: 'Extreme Weather & Icing'
-  },
-
-  safety: {
-    title: 'Airworthiness & Safety Operations',
-    subtitle: 'Fleet reliability tracking, incident investigations, and regulatory directives.',
-    activeFleetInService: 'Active Fleet in Service',
-    fleetDispatchReliability: 'Fleet Dispatch Reliability',
-    incidentHistory: 'Reported In-Service Occurrences',
-    noIncidents: 'Clean safety record. No active service anomalies reported.',
-    investigationPhase: 'Investigation Phase',
-    adDirectives: 'Airworthiness Directives'
-  },
-
-  news: {
-    title: 'Global Aviation Intelligence Wire',
-    subtitle: 'Real-time industry dispatches, regulatory rulings, and competitor movements.',
-    categories: {
-      all: 'All Dispatches',
-      commercial: 'Commercial & Orders',
-      engineering: 'R&D & Engineering',
-      safety: 'Safety & Directives',
-      financial: 'Corporate & Finance'
+    certProgress: 'Type Certification Status',
+    conductTest: 'Schedule Test Sortie',
+    sortiesRunning: 'Sortie in progress (Day {{elapsed}}/{{total}})',
+    scenarios: {
+      structural_ultimate_load: { name: '150% Structural Ultimate Load Test', desc: 'Hydraulic actuators bend the carbon-aluminum wing box to 1.5x design limit.' },
+      cabin_emergency_evacuation: { name: '90-Second Full Cabin Evacuation Drill', desc: 'Evacuate maximum passenger load in darkness with 50% exits blocked.' },
+      landing_gear_rto_brakes: { name: 'Max Energy Rejected Takeoff (RTO) Brakes', desc: 'Abort takeoff at maximum weight with worn carbon brakes without reversers.' },
+      iron_bird_systems_integration: { name: 'Iron Bird Integrated Systems Rig', desc: 'Full-scale ground test rig powering avionics, hydraulics, and actuators.' },
+      basic_handling_qualities: { name: 'Basic Handling Qualities Shakedown', desc: 'Initial flight test sortie checking trim, pitch response, and basic stability.' },
+      stall_campaign: { name: 'Low-Speed Stall & Alpha Protection', desc: 'Explore high angle-of-attack limits, stall warning horns, and FBW protection.' },
+      flutter_envelope_expansion: { name: 'Transonic Dive & Flutter Margin', desc: 'Dive to Mach 0.93 to verify aeroelastic damping across the empennage.' },
+      hot_and_high_trials: { name: 'Hot & High Altitude Trials', desc: 'Deploy to high-elevation airport in 38°C heat to validate climb gradients.' },
+      natural_icing_campaign: { name: 'Severe Meteorological Natural Icing', desc: 'Hunt for supercooled liquid cloud droplets to validate wing bleed heating.' },
+      crosswind_landing_trials: { name: '35-Knot Gusting Crosswind Landings', desc: 'Test crab-angle decrab authority and landing gear side loads in heavy gusts.' },
+      autoland_cat3_validation: { name: 'CAT IIIb Zero-Visibility Autoland', desc: 'Precision ILS approach and automatic rollout in zero-visibility conditions.' },
+      long_range_endurance_validation: { name: 'Extended Range ETOPS Proving', desc: 'Multi-hour endurance flight validating diversion reliability and oil consumption.' }
     }
   },
 
-  milestones: {
-    title: 'Aviation Legacy Timeline',
-    subtitle: 'Track your historic corporate and aerospace engineering achievements.',
-    unlocked: 'Milestones Achieved',
-    locked: 'Locked Future Milestones'
+  news: {
+    templates: {
+      maidenFlight: 'The flagship prototype of the {{aircraft}} completed its historic maiden flight today, beginning its formal flight test certification campaign.',
+      certificationGranted: 'The {{aircraft}} has officially received full commercial Type Certification, validating compliance with all airworthiness and safety standards.',
+      firstDelivery: 'The very first production {{aircraft}} ({{msn}}) has been handed over to launch customer {{customer}}.',
+      rfpWon: '{{airline}} has officially selected the {{aircraft}}, placing a firm order for {{quantity}} aircraft valued at ${{valueB}}B.',
+      rfpLost: '{{airline}} has awarded its fleet tender to {{competitor}} for {{quantity}} units of the {{planeName}}.'
+    }
   },
 
   settings: {
